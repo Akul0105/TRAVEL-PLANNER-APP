@@ -9,6 +9,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Trash2, Minimize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
 import { ChatbotProps, ChatMessage } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -24,7 +25,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
     {
       id: '1',
       role: 'assistant',
-      content: "Hello! I'm your personal travel agent assistant. I'm here to help you plan your perfect trip! 🧳✈️\n\nI can help you with:\n• Destination recommendations\n• Travel packages and deals\n• Hotel and flight suggestions\n• Activity planning\n• Market basket analysis for related services\n\nWhat kind of adventure are you looking for today?",
+      content: "Hello! I'm your personal travel agent assistant. I'm here to help you plan your perfect trip! 🧳✈️\n\nI can help you with:\n- Destination recommendations\n- Travel packages and deals\n- Hotel and flight suggestions\n- Activity planning\n- Market basket analysis for related services\n\nWhat kind of adventure are you looking for today?",
       timestamp: new Date(),
     }
   ]);
@@ -209,7 +210,20 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                       : "bg-gray-100 text-gray-900"
                   )}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  <div className="text-sm prose prose-sm max-w-none">
+                    <ReactMarkdown
+                      components={{
+                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                        strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
+                        em: ({ children }) => <em className="italic text-gray-700">{children}</em>,
+                        ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                        ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                        li: ({ children }) => <li className="text-sm">{children}</li>,
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
                   <p className={cn(
                     "text-xs mt-1",
                     message.role === 'user' ? "text-blue-100" : "text-gray-500"
