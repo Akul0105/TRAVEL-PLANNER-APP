@@ -7,7 +7,6 @@
 'use client';
 
 import { MessageCircle, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { FloatingChatIconProps } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -18,47 +17,34 @@ import { cn } from '@/lib/utils';
  */
 export function FloatingChatIcon({ onClick, isOpen }: FloatingChatIconProps) {
   return (
-    <AnimatePresence>
-      <motion.button
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0, opacity: 0 }}
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={onClick}
-        className={cn(
-          "fixed bottom-6 right-6 z-50",
-          "w-14 h-14 rounded-full shadow-lg",
-          "flex items-center justify-center",
-          "transition-all duration-300 ease-in-out",
-          "hover:shadow-xl",
-          // Dynamic styling based on chatbot state
-          isOpen 
-            ? "bg-red-500 hover:bg-red-600 text-white" 
-            : "bg-blue-500 hover:bg-blue-600 text-white"
+    <button
+      onClick={onClick}
+      className={cn(
+        "fixed bottom-6 right-6 z-50",
+        "w-14 h-14 rounded-full shadow-lg",
+        "flex items-center justify-center",
+        "transition-all duration-300 ease-in-out",
+        "hover:shadow-xl hover:scale-110",
+        "transform scale-100 opacity-100",
+        // Dynamic styling based on chatbot state
+        isOpen 
+          ? "bg-red-500 hover:bg-red-600 text-white" 
+          : "bg-blue-500 hover:bg-blue-600 text-white"
+      )}
+      aria-label={isOpen ? "Close chat" : "Open chat"}
+    >
+      <div className="transition-transform duration-300">
+        {isOpen ? (
+          <X className="w-6 h-6" />
+        ) : (
+          <MessageCircle className="w-6 h-6" />
         )}
-        aria-label={isOpen ? "Close chat" : "Open chat"}
-      >
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {isOpen ? (
-            <X className="w-6 h-6" />
-          ) : (
-            <MessageCircle className="w-6 h-6" />
-          )}
-        </motion.div>
-        
-        {/* Pulse animation when chatbot is closed */}
-        {!isOpen && (
-          <motion.div
-            className="absolute inset-0 rounded-full bg-blue-400"
-            animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
-        )}
-      </motion.button>
-    </AnimatePresence>
+      </div>
+      
+      {/* Pulse animation when chatbot is closed */}
+      {!isOpen && (
+        <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-20" />
+      )}
+    </button>
   );
 }

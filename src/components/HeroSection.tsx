@@ -8,7 +8,8 @@
 
 import { SearchBar } from './SearchBar';
 import { SearchSuggestion } from '@/types';
-import { FadeInText, SlideInText, AnimatedGradientText } from './ui/text-animations';
+import { FadeInText, SlideInText } from './ui/text-animations';
+import { AnimatedGradientText } from './ui/gradient-text';
 
 interface HeroSectionProps {
   onSearch: (query: string) => void;

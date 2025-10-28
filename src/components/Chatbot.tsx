@@ -25,7 +25,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
     {
       id: '1',
       role: 'assistant',
-      content: "Hello! I'm your personal travel agent assistant. I'm here to help you plan your perfect trip! 🧳✈️\n\nI can help you with:\n- Destination recommendations\n- Travel packages and deals\n- Hotel and flight suggestions\n- Activity planning\n- Market basket analysis for related services\n\nWhat kind of adventure are you looking for today?",
+      content: "Hey! I'm your travel buddy! 🧳 What kind of trip are you dreaming about?",
       timestamp: new Date(),
     }
   ]);

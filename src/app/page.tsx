@@ -16,24 +16,14 @@
 
 import { useEffect } from 'react';
 import { HeroSection } from '@/components/HeroSection';
-import { FloatingChatIcon } from '@/components/FloatingChatIcon';
-import { Chatbot } from '@/components/Chatbot';
-import { useChatbot } from '@/hooks/useChatbot';
 import { useSearch } from '@/hooks/useSearch';
 import { AnimatedCard } from '@/components/ui/animated-card';
 import { SearchSuggestion } from '@/types';
 import { MagicButton } from '@/components/ui/magic-button';
-import { FadeInText, AnimatedGradientText } from '@/components/ui/text-animations';
+import { FadeInText } from '@/components/ui/text-animations';
+import { AnimatedGradientText } from '@/components/ui/gradient-text';
 
 export default function Home() {
-  // Initialize chatbot and search hooks
-  const {
-    isOpen: isChatbotOpen,
-    toggleChatbot,
-    closeChatbot,
-    initializeChatbot,
-  } = useChatbot();
-
   const {
     query,
     suggestions,
@@ -44,11 +34,6 @@ export default function Home() {
     performSearch,
     handleSuggestionClick: onSuggestionClick,
   } = useSearch();
-
-  // Initialize chatbot with welcome message when component mounts
-  useEffect(() => {
-    initializeChatbot();
-  }, [initializeChatbot]);
 
   /**
    * Handle search query updates
@@ -87,19 +72,6 @@ export default function Home() {
         isLoading={isSearchLoading}
         showSuggestions={showSuggestions}
         onSuggestionClick={handleSuggestionClick}
-      />
-
-      {/* Floating Chat Icon */}
-      <FloatingChatIcon
-        onClick={toggleChatbot}
-        isOpen={isChatbotOpen}
-      />
-
-      {/* Chatbot Interface */}
-      <Chatbot
-        isOpen={isChatbotOpen}
-        onToggle={toggleChatbot}
-        onClose={closeChatbot}
       />
 
       {/* Popular Destinations Section */}
