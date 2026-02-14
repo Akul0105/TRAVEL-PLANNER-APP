@@ -27,11 +27,12 @@ export function generateId(): string {
 /**
  * Format currency for display
  * @param amount - The amount to format
- * @param currency - The currency code (default: USD)
+ * @param currency - The currency code (default: MUR)
  * @returns Formatted currency string
  */
-export function formatCurrency(amount: number, currency: string = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
+export function formatCurrency(amount: number, currency: string = 'MUR'): string {
+  // Mauritian Rupees format: Rs 1,234.56
+  return new Intl.NumberFormat('en-MU', {
     style: 'currency',
     currency: currency,
   }).format(amount);

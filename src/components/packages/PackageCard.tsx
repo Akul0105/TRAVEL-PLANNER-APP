@@ -32,8 +32,8 @@ export function PackageCard({ package: pkg }: PackageCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
 
-  const savings = parseInt(pkg.originalPrice.replace('$', '')) - parseInt(pkg.price.replace('$', ''));
-  const savingsPercent = Math.round((savings / parseInt(pkg.originalPrice.replace('$', ''))) * 100);
+  const savings = parseInt(pkg.originalPrice.replace(/[Rs,\s]/g, '')) - parseInt(pkg.price.replace(/[Rs,\s]/g, ''));
+  const savingsPercent = Math.round((savings / parseInt(pkg.originalPrice.replace(/[Rs,\s]/g, ''))) * 100);
 
   return (
     <AnimatedCard
@@ -120,7 +120,7 @@ export function PackageCard({ package: pkg }: PackageCardProps) {
             <span className="text-sm text-gray-500 line-through ml-2">{pkg.originalPrice}</span>
           </div>
           <div className="text-right">
-            <p className="text-sm text-green-600 font-medium">Save ${savings}</p>
+            <p className="text-sm text-green-600 font-medium">Save Rs {savings.toLocaleString()}</p>
           </div>
         </div>
 
@@ -148,6 +148,7 @@ export function PackageCard({ package: pkg }: PackageCardProps) {
           <button
             onClick={() => setShowDetails(!showDetails)}
             className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            suppressHydrationWarning
           >
             {showDetails ? 'Hide Details' : 'What\'s Included'} ({pkg.includes.length} items)
           </button>
@@ -186,10 +187,16 @@ export function PackageCard({ package: pkg }: PackageCardProps) {
 
         {/* Action Buttons */}
         <div className="flex space-x-2">
-          <button className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+          <button 
+            className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            suppressHydrationWarning
+          >
             Book Now
           </button>
-          <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+          <button 
+            className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            suppressHydrationWarning
+          >
             Details
           </button>
         </div>

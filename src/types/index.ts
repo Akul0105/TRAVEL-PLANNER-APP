@@ -43,13 +43,16 @@ export interface TravelPackage {
   relatedPackages?: string[]; // IDs of related packages for market basket analysis
 }
 
-// API response interface for Mystral chat
-export interface MystralChatResponse {
-  choices: Array<{
-    message: {
-      content: string;
+// API response interface for Gemini chat
+export interface GeminiChatResponse {
+  candidates: Array<{
+    content: {
+      parts: Array<{
+        text: string;
+      }>;
       role: string;
     };
+    finishReason: string;
   }>;
 }
 
@@ -89,4 +92,34 @@ export interface SearchBarProps {
 export interface FloatingChatIconProps {
   onClick: () => void;
   isOpen: boolean;
+}
+
+// Trip information interface for collecting user trip details
+export interface TripInfo {
+  destination?: string;
+  startDate?: string;
+  endDate?: string;
+  numberOfTravelers?: number;
+  budget?: string;
+  travelStyle?: 'adventure' | 'relaxation' | 'cultural' | 'business' | 'family' | 'luxury' | 'budget';
+  accommodationPreference?: 'hotel' | 'resort' | 'apartment' | 'hostel' | 'luxury';
+  interests?: string[];
+}
+
+// Trip information collection state
+export type TripInfoStep = 
+  | 'welcome'
+  | 'destination'
+  | 'dates'
+  | 'travelers'
+  | 'budget'
+  | 'travelStyle'
+  | 'accommodation'
+  | 'interests'
+  | 'complete';
+
+export interface TripInfoState {
+  currentStep: TripInfoStep;
+  tripInfo: TripInfo;
+  isComplete: boolean;
 }

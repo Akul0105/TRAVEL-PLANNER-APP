@@ -201,7 +201,7 @@ export function CustomerSegmentAnalysis() {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="text-center p-3 bg-green-50 rounded-lg">
                 <p className="text-sm text-green-600 font-medium">Avg Spend</p>
-                <p className="text-lg font-bold text-green-900">${segment.avgSpend}</p>
+                <p className="text-lg font-bold text-green-900">Rs {segment.avgSpend.toLocaleString()}</p>
               </div>
               <div className="text-center p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-600 font-medium">Rules</p>
@@ -244,7 +244,7 @@ export function CustomerSegmentAnalysis() {
                 This segment shows strong preference for{' '}
                 <strong>{segment.characteristics[0].replace('-', ' ')}</strong> experiences
                 with <strong>{(segment.satisfaction * 100).toFixed(0)}%</strong> satisfaction rate.
-                Average transaction value is <strong>${segment.avgSpend}</strong>.
+                Average transaction value is <strong>Rs {segment.avgSpend.toLocaleString()}</strong>.
               </p>
             </div>
           </AnimatedCard>
@@ -276,7 +276,7 @@ export function CustomerSegmentAnalysis() {
                     </div>
                   </td>
                   <td className="py-3 px-4 text-gray-700">{segment.size}</td>
-                  <td className="py-3 px-4 text-gray-700">${segment.avgSpend}</td>
+                  <td className="py-3 px-4 text-gray-700">Rs {segment.avgSpend.toLocaleString()}</td>
                   <td className="py-3 px-4">
                     <span className="text-green-600 font-medium">
                       +{(segment.growth * 100).toFixed(0)}%

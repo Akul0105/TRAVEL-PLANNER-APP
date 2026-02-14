@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/layout/Navigation";
@@ -14,12 +14,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// ✅ Metadata (without viewport)
 export const metadata: Metadata = {
   title: "Travel Agent Planner - AI-Powered Travel Planning",
-  description: "Discover amazing destinations, get personalized recommendations, and plan your perfect trip with our AI-powered travel agent. Experience the future of travel planning with market basket analysis.",
-  keywords: "travel, AI, chatbot, travel planning, destinations, market basket analysis, Mystral AI",
+  description:
+    "Discover amazing destinations, get personalized recommendations, and plan your perfect trip with our AI-powered travel agent. Experience the future of travel planning with market basket analysis.",
+  keywords:
+    "travel, AI, chatbot, travel planning, destinations, market basket analysis, Mystral AI",
   authors: [{ name: "Travel Agent Planner Team" }],
-  viewport: "width=device-width, initial-scale=1",
+};
+
+// ✅ Viewport (moved to its own export)
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({

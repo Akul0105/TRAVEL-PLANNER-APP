@@ -162,7 +162,7 @@ export function MBABundleGenerator({ context, title, subtitle }: MBABundleGenera
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="font-bold text-gray-900">${item.price}</span>
+                    <span className="font-bold text-gray-900">Rs {item.price.toLocaleString()}</span>
                     <button
                       onClick={() => handleCustomize(bundle.id, item.id, !customizations[`${bundle.id}-${item.id}`])}
                       className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
@@ -186,15 +186,15 @@ export function MBABundleGenerator({ context, title, subtitle }: MBABundleGenera
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 mb-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600">Original Price:</span>
-                <span className="text-sm line-through text-gray-500">${bundle.originalPrice}</span>
+                <span className="text-sm line-through text-gray-500">Rs {bundle.originalPrice.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-600">Bundle Price:</span>
-                <span className="text-lg font-bold text-blue-600">${bundle.bundlePrice}</span>
+                <span className="text-lg font-bold text-blue-600">Rs {bundle.bundlePrice.toLocaleString()}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-green-600">You Save:</span>
-                <span className="text-lg font-bold text-green-600">${bundle.savings}</span>
+                <span className="text-lg font-bold text-green-600">Rs {bundle.savings.toLocaleString()}</span>
               </div>
             </div>
 
@@ -268,7 +268,7 @@ export function MBABundleGenerator({ context, title, subtitle }: MBABundleGenera
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <span className="font-bold text-gray-900">${item.price}</span>
+                    <span className="font-bold text-gray-900">Rs {item.price.toLocaleString()}</span>
                     <button
                       onClick={() => handleCustomize(selectedBundle.id, item.id, !customizations[`${selectedBundle.id}-${item.id}`])}
                       className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
@@ -288,7 +288,7 @@ export function MBABundleGenerator({ context, title, subtitle }: MBABundleGenera
               <div className="flex items-center justify-between">
                 <span className="text-lg font-medium text-gray-900">Total Price:</span>
                 <span className="text-2xl font-bold text-blue-600">
-                  ${calculateCustomPrice(selectedBundle)}
+                  Rs {calculateCustomPrice(selectedBundle).toLocaleString()}
                 </span>
               </div>
             </div>

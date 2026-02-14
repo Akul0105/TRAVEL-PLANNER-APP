@@ -248,7 +248,7 @@ export function BookingForm({ searchParams }: BookingFormProps) {
                     <p className="text-sm text-gray-600">{activity.description}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-blue-600">${activity.price}</p>
+                    <p className="font-bold text-blue-600">Rs {activity.price.toLocaleString()}</p>
                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mt-2 ${
                       formData.activities.includes(activity.id)
                         ? 'border-blue-500 bg-blue-500'

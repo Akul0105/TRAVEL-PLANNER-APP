@@ -4,6 +4,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { SearchSuggestion, SearchState } from '@/types';
 import { getSearchSuggestions } from '@/services/mystralService';
 import { debounce, generateId } from '@/lib/utils';
@@ -14,6 +15,7 @@ import { debounce, generateId } from '@/lib/utils';
  * @returns Object containing search state and functions
  */
 export function useSearch() {
+  const router = useRouter();
   const [state, setState] = useState<SearchState>({
     query: '',
     suggestions: [],
@@ -114,7 +116,7 @@ export function useSearch() {
   }, []);
 
   /**
-   * Handle suggestion click
+   * Handle suggestion click - Navigate to details page
    * @param suggestion - The clicked suggestion
    */
   const handleSuggestionClick = useCallback((suggestion: SearchSuggestion) => {
@@ -123,8 +125,16 @@ export function useSearch() {
       query: suggestion.text,
       showSuggestions: false,
     }));
-    performSearch(suggestion.text);
-  }, [performSearch]);
+    
+    // Navigate to details page with the suggestion information
+    const params = new URLSearchParams({
+      query: suggestion.text,
+      type: suggestion.type,
+      id: suggestion.id,
+    });
+    
+    router.push(`/details?${params.toString()}`);
+  }, [router]);
 
   /**
    * Hide suggestions

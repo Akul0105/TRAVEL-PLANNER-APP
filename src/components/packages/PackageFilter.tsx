@@ -17,7 +17,7 @@ export function PackageFilter({ searchParams }: PackageFilterProps) {
   });
 
   const categories = ['luxury', 'budget', 'adventure', 'cultural', 'romantic', 'family', 'wellness'];
-  const priceRanges = ['Under $1000', '$1000-$2000', '$2000-$3000', 'Over $3000'];
+  const priceRanges = ['Under Rs 45,000', 'Rs 45,000-Rs 90,000', 'Rs 90,000-Rs 135,000', 'Over Rs 135,000'];
   const durations = ['3-5 days', '6-8 days', '9-12 days', '13+ days'];
   const ratings = ['4.5+', '4.0+', '3.5+', '3.0+'];
 
@@ -45,6 +45,7 @@ export function PackageFilter({ searchParams }: PackageFilterProps) {
         <button
           onClick={clearFilters}
           className="text-sm text-blue-600 hover:text-blue-700"
+          suppressHydrationWarning
         >
           Clear All
         </button>
@@ -60,6 +61,7 @@ export function PackageFilter({ searchParams }: PackageFilterProps) {
             onChange={(e) => handleFilterChange('search', e.target.value)}
             placeholder="Search packages..."
             className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            suppressHydrationWarning
           />
         </div>
       </div>
@@ -151,7 +153,10 @@ export function PackageFilter({ searchParams }: PackageFilterProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <span className="text-sm font-medium text-gray-700">Sort by:</span>
-            <select className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <select 
+              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              suppressHydrationWarning
+            >
               <option value="popularity">Most Popular</option>
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>
@@ -161,7 +166,10 @@ export function PackageFilter({ searchParams }: PackageFilterProps) {
             </select>
           </div>
           
-          <button className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+          <button 
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            suppressHydrationWarning
+          >
             Apply Filters
           </button>
         </div>

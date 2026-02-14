@@ -32,6 +32,7 @@ export function FloatingChatIcon({ onClick, isOpen }: FloatingChatIconProps) {
           : "bg-blue-500 hover:bg-blue-600 text-white"
       )}
       aria-label={isOpen ? "Close chat" : "Open chat"}
+      suppressHydrationWarning
     >
       <div className="transition-transform duration-300">
         {isOpen ? (

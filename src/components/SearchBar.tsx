@@ -1,21 +1,10 @@
-/**
- * Search Bar Component with Google-like Suggestions
- * Features autocomplete, loading states, and smooth animations
- */
-
 'use client';
-
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Search, Loader2, MapPin, Plane, Hotel, Package, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchBarProps, SearchSuggestion } from '@/types';
 import { cn } from '@/lib/utils';
 
-/**
- * Get icon for suggestion type
- * @param type - The suggestion type
- * @returns JSX element for the icon
- */
 function getSuggestionIcon(type: SearchSuggestion['type']) {
   switch (type) {
     case 'destination':
@@ -33,18 +22,9 @@ function getSuggestionIcon(type: SearchSuggestion['type']) {
   }
 }
 
-/**
- * Search bar component with autocomplete suggestions
- * @param onSearch - Function to call when search is performed
- * @param suggestions - Array of search suggestions
- * @param isLoading - Whether suggestions are loading
- * @param showSuggestions - Whether to show suggestions dropdown
- * @param onSuggestionClick - Function to call when suggestion is clicked
- */
 export function SearchBar({
   onSearch,
   suggestions,
-  marketBasketResults = [],
   isLoading,
   showSuggestions,
   onSuggestionClick,
@@ -54,19 +34,11 @@ export function SearchBar({
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  /**
-   * Handle input change
-   * @param value - The new input value
-   */
   const handleInputChange = (value: string) => {
     setInputValue(value);
     onSearch(value);
   };
 
-  /**
-   * Handle form submission
-   * @param e - Form event
-   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim()) {
@@ -74,37 +46,22 @@ export function SearchBar({
     }
   };
 
-  /**
-   * Handle suggestion click
-   * @param suggestion - The clicked suggestion
-   */
   const handleSuggestionClick = (suggestion: SearchSuggestion) => {
     setInputValue(suggestion.text);
     onSuggestionClick(suggestion);
     setIsFocused(false);
   };
 
-  /**
-   * Handle input focus
-   */
   const handleFocus = () => {
     setIsFocused(true);
   };
 
-  /**
-   * Handle input blur
-   */
   const handleBlur = () => {
-    // Delay hiding suggestions to allow for clicks
     setTimeout(() => {
       setIsFocused(false);
     }, 200);
   };
 
-  /**
-   * Handle keyboard navigation
-   * @param e - Keyboard event
-   */
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       setIsFocused(false);
@@ -139,7 +96,6 @@ export function SearchBar({
             )}
           />
           
-          {/* Loading indicator */}
           {isLoading && (
             <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
               <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
@@ -188,43 +144,6 @@ export function SearchBar({
                 </div>
               </motion.div>
             ))}
-
-            {/* Market Basket Analysis Results */}
-            {marketBasketResults.length > 0 && (
-              <>
-                <div className="border-t border-gray-200 my-2"></div>
-                <div className="px-4 py-2">
-                  <p className="text-sm font-semibold text-purple-600 mb-2">
-                    🛒 People also tried these places when going to &quot;{inputValue}&quot;
-                  </p>
-                </div>
-                {marketBasketResults.map((suggestion, index) => (
-                  <motion.div
-                    key={suggestion.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: (suggestions.length + index) * 0.05 }}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3",
-                      "hover:bg-purple-50 cursor-pointer",
-                      "transition-colors duration-150",
-                      "border-l-4 border-purple-200"
-                    )}
-                  >
-                    {getSuggestionIcon(suggestion.type)}
-                    <div className="flex-1">
-                      <p className="text-gray-900 font-medium">
-                        {suggestion.text}
-                      </p>
-                      <p className="text-sm text-purple-600 capitalize">
-                        Market Basket • {suggestion.popularity}% also tried
-                      </p>
-                    </div>
-                  </motion.div>
-                ))}
-              </>
-            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -241,7 +160,15 @@ export function SearchBar({
             {['Paris', 'Tokyo', 'Bali', 'New York', 'London'].map((term) => (
               <button
                 key={term}
-                onClick={() => handleInputChange(term)}
+                onClick={() => {
+                  const suggestion: SearchSuggestion = {
+                    id: term.toLowerCase().replace(' ', '-'),
+                    text: term,
+                    type: 'destination',
+                    popularity: 85
+                  };
+                  handleSuggestionClick(suggestion);
+                }}
                 className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
               >
                 {term}

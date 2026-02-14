@@ -1,32 +1,28 @@
-/**
- * Chat API Route
- * Handles chatbot requests and integrates with Mystral AI
- * Provides travel-specific responses with market basket analysis
- */
-
+// File: src/app/api/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { sendChatMessage } from '@/services/mystralService';
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages } = await request.json();
+    // 1. Get the user's message history and trip info from the frontend
+    const { messages, tripInfo } = await request.json();
 
-    if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: 'Messages array is required' },
-        { status: 400 }
-      );
+    if (!messages) {
+      return NextResponse.json({ error: 'Messages are required' }, { status: 400 });
     }
 
-    // Send to Mystral AI
-    const response = await sendChatMessage(messages);
+    // 2. Use the Gemini service to send the message with trip info
+    // The service handles the API call and formatting
+    const aiResponse = await sendChatMessage(messages, tripInfo);
 
-    return NextResponse.json({ response });
+    // 3. Return the AI's response to the frontend
+    return NextResponse.json({ response: aiResponse });
+
   } catch (error) {
-    console.error('Chat API error:', error);
-    
+    // This catches errors if our server fails for any reason
+    console.error("Chat route error:", error);
     return NextResponse.json(
-      { error: 'Failed to process chat message' },
+      { response: "⚠️ My apologies, an internal error occurred. Please try again later!" },
       { status: 500 }
     );
   }

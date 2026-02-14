@@ -108,7 +108,7 @@ export function BusinessIntelligence() {
             {segments.map((segment, index) => (
               <div key={index} className="flex justify-between">
                 <span className="text-sm text-gray-600">{segment.name.toLowerCase()}</span>
-                <span className="text-sm font-medium text-purple-600">${segment.avgSpend.toLocaleString()} avg</span>
+                <span className="text-sm font-medium text-purple-600">Rs {segment.avgSpend.toLocaleString()} avg</span>
               </div>
             ))}
           </div>

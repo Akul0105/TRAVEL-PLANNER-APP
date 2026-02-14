@@ -15,6 +15,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { HeroSection } from '@/components/HeroSection';
 import { useSearch } from '@/hooks/useSearch';
 import { AnimatedCard } from '@/components/ui/animated-card';
@@ -24,6 +25,7 @@ import { FadeInText } from '@/components/ui/text-animations';
 import { AnimatedGradientText } from '@/components/ui/gradient-text';
 
 export default function Home() {
+  const router = useRouter();
   const {
     query,
     suggestions,
@@ -95,20 +97,35 @@ export default function Home() {
                 { name: 'Tokyo', image: '🏯', description: 'Modern metropolis with ancient traditions' },
                 { name: 'Bali', image: '🌺', description: 'Island of gods and spiritual retreats' },
                 { name: 'Dubai', image: '🏙️', description: 'Luxury destination in the desert' },
-              ].map((destination, index) => (
-                <AnimatedCard
-                  key={destination.name}
-                  delay={index * 0.1}
-                  className="p-6 text-center hover:scale-105 transition-transform duration-300"
-                >
-                  <div className="text-6xl mb-4">{destination.image}</div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{destination.name}</h3>
-                  <p className="text-gray-600 mb-4">{destination.description}</p>
-                  <MagicButton variant="travel" size="sm">
-                    Explore {destination.name}
-                  </MagicButton>
-                </AnimatedCard>
-              ))}
+              ].map((destination, index) => {
+                const handleExplore = () => {
+                  const params = new URLSearchParams({
+                    query: destination.name,
+                    type: 'destination',
+                    id: destination.name.toLowerCase().replace(' ', '-'),
+                  });
+                  router.push(`/details?${params.toString()}`);
+                };
+
+                return (
+                  <AnimatedCard
+                    key={destination.name}
+                    delay={index * 0.1}
+                    className="p-6 text-center hover:scale-105 transition-transform duration-300"
+                  >
+                    <div className="text-6xl mb-4">{destination.image}</div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">{destination.name}</h3>
+                    <p className="text-gray-600 mb-4">{destination.description}</p>
+                    <MagicButton 
+                      variant="travel" 
+                      size="sm"
+                      onClick={handleExplore}
+                    >
+                      Explore {destination.name}
+                    </MagicButton>
+                  </AnimatedCard>
+                );
+              })}
             </div>
           </div>
         </div>

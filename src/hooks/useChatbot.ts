@@ -69,7 +69,7 @@ export function useChatbot() {
       // Get updated messages for API call
       const updatedMessages = [...state.messages, userMessage];
       
-      // Send message to Mystral API
+      // Send message to Gemini API
       const response = await sendChatMessage(updatedMessages);
 
       // Create assistant message

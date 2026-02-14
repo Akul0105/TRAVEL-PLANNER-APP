@@ -13,7 +13,7 @@ export function FilterSidebar() {
   });
 
   const categories = ['beach', 'city', 'mountain', 'cultural', 'adventure', 'luxury'];
-  const priceRanges = ['Under $500', '$500-$1000', '$1000-$2000', 'Over $2000'];
+  const priceRanges = ['Under Rs 22,500', 'Rs 22,500-Rs 45,000', 'Rs 45,000-Rs 90,000', 'Over Rs 90,000'];
   const durations = ['1-3 days', '4-7 days', '8-14 days', '15+ days'];
   const ratings = ['4.5+', '4.0+', '3.5+', '3.0+'];
   const tags = ['luxury', 'budget', 'family', 'romantic', 'adventure', 'cultural'];

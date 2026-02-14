@@ -169,7 +169,7 @@ export function MBARecommendations({
                 <p className="text-sm text-gray-600 capitalize">{item.category}</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-blue-600">${item.price}</p>
+                <p className="text-lg font-bold text-blue-600">Rs {item.price.toLocaleString()}</p>
                 {showConfidence && (
                   <p className="text-xs text-gray-500">Confidence: 85%</p>
                 )}

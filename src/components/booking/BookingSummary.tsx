@@ -18,11 +18,11 @@ export function BookingSummary({ searchParams }: BookingSummaryProps) {
     checkOut: '2024-03-22',
     roomType: 'Deluxe Ocean View',
     flightClass: 'Economy',
-    totalPrice: 1299,
+    totalPrice: 58455, // Rs (1299 USD * 45)
     breakdown: {
-      accommodation: 800,
-      flights: 400,
-      activities: 99
+      accommodation: 36000, // Rs (800 USD * 45)
+      flights: 18000, // Rs (400 USD * 45)
+      activities: 4455 // Rs (99 USD * 45)
     }
   };
 
@@ -69,20 +69,20 @@ export function BookingSummary({ searchParams }: BookingSummaryProps) {
       <div className="border-t border-gray-200 pt-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-gray-600">Accommodation</span>
-          <span className="text-sm font-medium">${bookingDetails.breakdown.accommodation}</span>
+          <span className="text-sm font-medium">Rs {bookingDetails.breakdown.accommodation.toLocaleString()}</span>
         </div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-gray-600">Flights</span>
-          <span className="text-sm font-medium">${bookingDetails.breakdown.flights}</span>
+          <span className="text-sm font-medium">Rs {bookingDetails.breakdown.flights.toLocaleString()}</span>
         </div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm text-gray-600">Activities</span>
-          <span className="text-sm font-medium">${bookingDetails.breakdown.activities}</span>
+          <span className="text-sm font-medium">Rs {bookingDetails.breakdown.activities.toLocaleString()}</span>
         </div>
         <div className="border-t border-gray-200 pt-2">
           <div className="flex items-center justify-between">
             <span className="text-lg font-bold text-gray-900">Total</span>
-            <span className="text-lg font-bold text-blue-600">${bookingDetails.totalPrice}</span>
+            <span className="text-lg font-bold text-blue-600">Rs {bookingDetails.totalPrice.toLocaleString()}</span>
           </div>
         </div>
       </div>
@@ -93,15 +93,15 @@ export function BookingSummary({ searchParams }: BookingSummaryProps) {
         <div className="space-y-2 text-sm">
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Travel Insurance</span>
-            <span className="text-green-600 font-medium">+$30</span>
+            <span className="text-green-600 font-medium">+Rs 1,350</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Airport Transfer</span>
-            <span className="text-green-600 font-medium">+$50</span>
+            <span className="text-green-600 font-medium">+Rs 2,250</span>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-gray-600">Spa Package</span>
-            <span className="text-green-600 font-medium">+$120</span>
+            <span className="text-green-600 font-medium">+Rs 5,400</span>
           </div>
         </div>
         <p className="text-xs text-gray-500 mt-2">
