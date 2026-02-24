@@ -1,98 +1,33 @@
 /**
- * Google Gemini API Service for Travel Agent Chatbot
- * This service handles all communication with the Google Gemini API
- * Configured specifically for travel agency context and market basket analysis simulation
+ * Mistral API Service for Travel Chatbot
+ * Gathers user preferences for market basket analysis and personalized bundle recommendations.
  */
 
 import { ChatMessage, TripInfo } from '@/types';
 
-// API Configuration
-const GEMINI_API_KEY = 'AIzaSyDoV_jtsMKA5iuboFYPc_lCPp--3APIULA';
+const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || '';
+const MISTRAL_CHAT_URL = 'https://api.mistral.ai/v1/chat/completions';
+const MISTRAL_MODEL = 'mistral-small-latest';
 
 /**
- * List available models for this API key
+ * System prompt: we gather preferences to build MBA-based personalized bundles, not to book trips.
  */
-async function listAvailableModels(): Promise<string[]> {
-  try {
-    // Try both v1 and v1beta
-    for (const version of ['v1', 'v1beta']) {
-      try {
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/${version}/models`,
-          {
-            headers: {
-              'x-goog-api-key': GEMINI_API_KEY,
-            },
-          }
-        );
-        
-        if (response.ok) {
-          const data = await response.json() as { models?: Array<{ name?: string }> };
-          const models = data.models?.map((m) => m.name?.replace('models/', '') || '').filter(Boolean) || [];
-          if (models.length > 0) {
-            return models;
-          }
-        }
-      } catch {
-        // Try next version
-        continue;
-      }
-    }
-  } catch (error) {
-    console.error('Error listing models:', error);
-  }
-  return [];
-}
+const TRAVEL_AGENT_SYSTEM_PROMPT = `You are a friendly travel preference assistant. Your goal is to LEARN the user's preferences and past travel so we can suggest PERSONALIZED BUNDLES (using market basket analysis), not to book trips.
 
-// Try different models in order of preference
-// Updated with latest model names based on current Gemini API
-const GEMINI_MODELS = [
-  { model: 'gemini-2.0-flash-exp', version: 'v1beta' },
-  { model: 'gemini-1.5-flash-8b', version: 'v1beta' },
-  { model: 'gemini-1.5-flash', version: 'v1beta' },
-  { model: 'gemini-1.5-pro', version: 'v1beta' },
-  { model: 'gemini-pro', version: 'v1beta' },
-  { model: 'gemini-2.0-flash-exp', version: 'v1' },
-  { model: 'gemini-1.5-flash-8b', version: 'v1' },
-  { model: 'gemini-1.5-flash', version: 'v1' },
-  { model: 'gemini-1.5-pro', version: 'v1' },
-  { model: 'gemini-pro', version: 'v1' },
-];
+IMPORTANT:
+- Keep responses SHORT (1–3 sentences). One question at a time.
+- Be conversational and warm. You are learning about them to personalize suggestions.
+- Do NOT offer to book flights, hotels, or reservations. You only collect preferences.
+- After they share something, acknowledge it and ask the next preference question when relevant.
 
-/**
- * System prompt to ensure the AI acts as a travel agent
- * This prompt constrains the AI to travel-related conversations and market basket analysis
- */
-const TRAVEL_AGENT_SYSTEM_PROMPT = `You are a friendly, conversational travel agent assistant. Keep responses SHORT and NATURAL - like chatting with a friend.
+WHAT TO GATHER (we use this for personalized bundles):
+- Destinations they're interested in or have visited before
+- Type of restaurants they enjoy (e.g. local, fine dining, street food, casual)
+- Activities they like (e.g. beaches, museums, hiking, food tours, nightlife)
+- Places or attractions they've loved
+- Budget style (budget / mid-range / luxury) and travel style (adventure, relaxation, cultural, etc.)
 
-IMPORTANT: 
-- Keep responses under 2-3 sentences maximum
-- Be conversational, not formal
-- Ask ONE question at a time
-- Don't overwhelm with long lists
-- Build conversation gradually
-- Remember what we've discussed before
-- ALWAYS suggest related services (market basket analysis)
-- Use the trip information provided to give personalized recommendations
-
-TRIP PLANNING:
-- When trip information is provided, use it to create personalized recommendations
-- Reference specific details like destination, dates, budget, and travel style
-- Suggest packages, activities, and services that match their preferences
-- Provide specific recommendations based on their collected information
-
-MARKET BASKET ANALYSIS - Always suggest complementary services:
-- If they mention a destination → suggest related activities, restaurants, nearby places
-- If they mention hotels → suggest restaurants, tours, activities
-- If they mention activities → suggest related experiences, dining, transportation
-- If they mention budget → suggest money-saving tips, package deals
-
-Examples of good responses with market basket:
-- "Nice! I love Paris. What's your budget like? I can also suggest some amazing restaurants and day trips!"
-- "Perfect! Since you're into museums, I can bundle in some great food tours and Seine cruises too!"
-- "Great choice! I can also arrange airport transfers and suggest some hidden gems nearby!"
-
-Keep it simple, friendly, and conversational while suggesting related services!`;
+When they share preferences, briefly confirm and suggest related ideas or ask one more short question. Never write long lists or act as a booking agent.`;
 
 /**
  * Build dynamic conversation context based on conversation history and trip info
@@ -165,22 +100,22 @@ function buildConversationContext(messages: ChatMessage[], tripInfo?: TripInfo):
     contextPrompt += `\nThis is an ongoing conversation. Keep it natural and conversational - suggest related services based on what they've mentioned!`;
   }
 
-  // Add trip information if available
+  // Add preference/trip context if available
   if (tripInfo) {
-    const tripDetails: string[] = [];
-    if (tripInfo.destination) tripDetails.push(`Destination: ${tripInfo.destination}`);
-    if (tripInfo.startDate) tripDetails.push(`Travel Dates: ${tripInfo.startDate}${tripInfo.endDate ? ` to ${tripInfo.endDate}` : ''}`);
-    if (tripInfo.numberOfTravelers) tripDetails.push(`Travelers: ${tripInfo.numberOfTravelers}`);
-    if (tripInfo.budget) tripDetails.push(`Budget: ${tripInfo.budget}`);
-    if (tripInfo.travelStyle) tripDetails.push(`Travel Style: ${tripInfo.travelStyle}`);
-    if (tripInfo.accommodationPreference) tripDetails.push(`Accommodation: ${tripInfo.accommodationPreference}`);
-    if (tripInfo.interests && tripInfo.interests.length > 0) tripDetails.push(`Interests: ${tripInfo.interests.join(', ')}`);
-
-    if (tripDetails.length > 0) {
-      contextPrompt += `\n\nTRIP INFORMATION (Use this to provide personalized recommendations):\n${tripDetails.join('\n')}`;
+    const details: string[] = [];
+    if (tripInfo.destination) details.push(`Interested destination: ${tripInfo.destination}`);
+    if (tripInfo.pastDestinations?.length) details.push(`Past destinations: ${tripInfo.pastDestinations.join(', ')}`);
+    if (tripInfo.restaurantPreferences) details.push(`Restaurant preferences: ${tripInfo.restaurantPreferences}`);
+    if (tripInfo.activityPreferences?.length) details.push(`Activities they like: ${tripInfo.activityPreferences.join(', ')}`);
+    if (tripInfo.placesVisited?.length) details.push(`Places visited/loved: ${tripInfo.placesVisited.join(', ')}`);
+    if (tripInfo.budget) details.push(`Budget: ${tripInfo.budget}`);
+    if (tripInfo.travelStyle) details.push(`Travel style: ${tripInfo.travelStyle}`);
+    if (tripInfo.interests?.length) details.push(`Interests: ${tripInfo.interests.join(', ')}`);
+    if (details.length > 0) {
+      contextPrompt += `\n\nCOLLECTED PREFERENCES (use for personalized bundle suggestions):\n${details.join('\n')}`;
     }
   }
-  
+
   return contextPrompt;
 }
 
@@ -191,144 +126,53 @@ function buildConversationContext(messages: ChatMessage[], tripInfo?: TripInfo):
  * @returns Promise with the AI response
  */
 export async function sendChatMessage(messages: ChatMessage[], tripInfo?: TripInfo): Promise<string> {
-  // Build dynamic conversation context with trip info
-  const conversationContext = buildConversationContext(messages, tripInfo);
-  
-  // Convert our message format to Gemini API format
-  // Gemini uses a different format: contents array with parts containing text
-  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
-  
-  // Add system instructions as the first user message (Gemini doesn't have system role)
-  contents.push({
-    role: 'user',
-    parts: [{ text: conversationContext }]
-  });
-  
-  // Add model acknowledgment to establish the context
-  contents.push({
-    role: 'model',
-    parts: [{ text: 'Understood. I will act as a friendly travel agent assistant, keeping responses short and conversational while suggesting complementary travel services.' }]
-  });
-  
-  // Add conversation history (skip if empty)
-  if (messages.length > 0) {
-    messages.forEach(msg => {
-      contents.push({
-        role: msg.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
-      });
+  const apiKey = MISTRAL_API_KEY;
+  if (!apiKey) {
+    console.error('Missing MISTRAL_API_KEY in environment');
+    return "I'm not configured yet. Please add MISTRAL_API_KEY to your .env.local and try again.";
+  }
+
+  const systemContent = buildConversationContext(messages, tripInfo);
+  const mistralMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+    { role: 'system', content: systemContent },
+  ];
+  messages.forEach((msg) => {
+    mistralMessages.push({
+      role: msg.role === 'assistant' ? 'assistant' : 'user',
+      content: msg.content,
     });
-  }
+  });
 
-  // First, try to get available models (but don't wait if it fails)
-  let availableModels: string[] = [];
   try {
-    availableModels = await listAvailableModels();
-    if (availableModels.length > 0) {
-      console.log('Available models:', availableModels);
+    const response = await fetch(MISTRAL_CHAT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: MISTRAL_MODEL,
+        messages: mistralMessages,
+        max_tokens: 256,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Mistral API error:', response.status, errText);
+      return "I'm having a small hiccup. Please try again in a moment.";
     }
-  } catch {
-    console.log('Could not list models, will try default list');
+
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string } }>;
+    };
+    const text = data.choices?.[0]?.message?.content?.trim();
+    return text || "I didn't get a clear reply. Want to try again?";
+  } catch (err) {
+    console.error('Mistral request failed:', err);
+    return "I couldn't reach the server. Please try again in a moment.";
   }
-
-  // Try each model/version combination until one works
-  let lastError: Error | null = null;
-  
-  // If we got available models, prioritize those
-  const modelsToTry = availableModels.length > 0 
-    ? availableModels.map(name => {
-        // Extract model name and determine version
-        const parts = name.split('/');
-        const modelName = parts[parts.length - 1];
-        // Try v1beta first, then v1
-        return [
-          { model: modelName, version: 'v1beta' },
-          { model: modelName, version: 'v1' }
-        ];
-      }).flat()
-    : GEMINI_MODELS;
-  
-  for (const { model, version } of modelsToTry) {
-    // Try both header and query parameter authentication
-    for (const authMethod of ['header', 'query']) {
-      try {
-        const apiUrl = authMethod === 'query'
-          ? `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${GEMINI_API_KEY}`
-          : `https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent`;
-        
-        const headers: Record<string, string> = {
-          'Content-Type': 'application/json',
-        };
-        
-        if (authMethod === 'header') {
-          headers['x-goog-api-key'] = GEMINI_API_KEY;
-        }
-        
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            contents: contents,
-            generationConfig: {
-              temperature: 0.8,
-              maxOutputTokens: 200,
-              topP: 0.8,
-              topK: 40,
-            },
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          if (authMethod === 'query') {
-            // If query param also fails, try next model
-            console.error(`Gemini API error with ${model} (${version}) [${authMethod}]:`, response.status, response.statusText, errorText);
-            lastError = new Error(`Gemini API error: ${response.status} - ${errorText}`);
-            break; // Try next auth method or model
-          }
-          // If header fails, try query param
-          continue;
-        }
-
-        const data = await response.json();
-        
-        if (!data.candidates || data.candidates.length === 0) {
-          if (authMethod === 'query') {
-            lastError = new Error('No response from Gemini API');
-            break; // Try next model
-          }
-          continue; // Try query param
-        }
-
-        const content = data.candidates[0].content;
-        if (!content || !content.parts || content.parts.length === 0) {
-          if (authMethod === 'query') {
-            lastError = new Error('Invalid response format from Gemini API');
-            break; // Try next model
-          }
-          continue; // Try query param
-        }
-
-        // Success! Return the response
-        console.log(`✅ Successfully used model: ${model} (${version}) with ${authMethod} auth`);
-        return content.parts[0].text;
-      } catch (error) {
-        if (authMethod === 'query') {
-          // Both auth methods failed for this model
-          console.error(`Error trying ${model} (${version}):`, error);
-          lastError = error instanceof Error ? error : new Error(String(error));
-          break; // Try next model
-        }
-        // Header failed, try query param
-        continue;
-      }
-    }
-  }
-
-  // If all models failed, return fallback message with helpful info
-  console.error('❌ All Gemini models failed. Last error:', lastError);
-  console.error('💡 Tip: Check if your API key has Gemini API enabled in Google Cloud Console');
-  return "I apologize, but I'm having trouble connecting to our travel planning system right now. Please try again in a moment, or feel free to ask me about popular destinations, travel packages, or any travel-related questions!";
 }
 
 /**

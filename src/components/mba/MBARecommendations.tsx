@@ -6,7 +6,7 @@ import { AnimatedCard, FadeInText } from '@/components/ui';
 import { TrendingUp, Users, Star, ArrowRight } from 'lucide-react';
 
 interface MBARecommendationsProps {
-  type: 'destinations' | 'packages' | 'booking' | 'insights';
+  type: 'destinations' | 'packages' | 'insights';
   context: Record<string, any>;
   title: string;
   subtitle: string;
@@ -59,9 +59,6 @@ export function MBARecommendations({
           break;
         case 'packages':
           recs = mbaEngine.getRecommendations(contextItems, 4);
-          break;
-        case 'booking':
-          recs = mbaEngine.getRecommendations(contextItems, 5);
           break;
         case 'insights':
           recs = mbaEngine.getTopRules(5).flatMap(rule => 

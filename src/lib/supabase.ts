@@ -104,3 +104,41 @@ export interface MBAAnalyticsSnapshot {
   created_at: string;
 }
 
+// User profile (public.profiles) - extends Supabase Auth
+export interface Profile {
+  id: string;
+  email: string | null;
+  full_name: string | null;
+  address: string | null;
+  avatar_url: string | null;
+  travel_style: string | null;
+  budget_preference: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// Visited destination (scrapbook)
+export interface VisitedDestination {
+  id: string;
+  user_id: string;
+  destination_name: string;
+  country: string | null;
+  notes: string | null;
+  visited_at: string | null;
+  created_at: string;
+}
+
+// MBA-generated bundle stored per user
+export interface UserBundle {
+  id: string;
+  user_id: string;
+  bundle_data: {
+    items: Array<{ id: string; name: string; category: string; price: number }>;
+    confidence?: number;
+    lift?: number;
+    ruleSummary?: string;
+  };
+  source: string;
+  created_at: string;
+}
+

@@ -360,6 +360,13 @@ export class MBAEngine {
   }
 
   // Public methods for MBA analysis
+  public getItemByIdOrName(idOrName: string): MBAItem | null {
+    const key = idOrName.toLowerCase().trim();
+    return this.items.find(
+      (i) => i.id.toLowerCase() === key || i.name.toLowerCase().includes(key) || key.includes(i.name.toLowerCase())
+    ) ?? null;
+  }
+
   public getRecommendations(context: MBAItem[], limit: number = 5): MBAItem[] {
     const recommendations: { item: MBAItem; score: number }[] = [];
     

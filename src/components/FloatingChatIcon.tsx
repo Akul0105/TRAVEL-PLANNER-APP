@@ -28,8 +28,8 @@ export function FloatingChatIcon({ onClick, isOpen }: FloatingChatIconProps) {
         "transform scale-100 opacity-100",
         // Dynamic styling based on chatbot state
         isOpen 
-          ? "bg-red-500 hover:bg-red-600 text-white" 
-          : "bg-blue-500 hover:bg-blue-600 text-white"
+          ? "bg-black hover:bg-neutral-800 text-white" 
+          : "bg-black hover:bg-neutral-800 text-white"
       )}
       aria-label={isOpen ? "Close chat" : "Open chat"}
       suppressHydrationWarning
@@ -44,7 +44,7 @@ export function FloatingChatIcon({ onClick, isOpen }: FloatingChatIconProps) {
       
       {/* Pulse animation when chatbot is closed */}
       {!isOpen && (
-        <div className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-20" />
+        <div className="absolute inset-0 rounded-full bg-black animate-ping opacity-15" />
       )}
     </button>
   );

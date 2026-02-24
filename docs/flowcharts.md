@@ -7,15 +7,13 @@ flowchart TD
     START([User Opens Website]) --> NAV[Global Navigation Bar]
     
     NAV --> |Click Home| HOME[Home Page /]
-    NAV --> |Click Destinations| DEST[Destinations Page /destinations]
-    NAV --> |Click Packages| PACK[Packages Page /packages]
-    NAV --> |Click Booking| BOOK[Booking Page /booking]
     NAV --> |Click Analytics| ANALYTICS[Analytics Page /analytics]
     
     %% Home Page Components
     HOME --> HERO[HeroSection<br/>Video Background + Animated Text]
     HOME --> SEARCH[SearchBar<br/>useSearch Hook]
     HOME --> POPULAR[Popular Destinations<br/>6 Cards with AnimatedCard]
+    HOME --> FORM[UserDetailsForm<br/>User preferences]
     HOME --> CHAT[ChatbotWrapper<br/>Connects Icon + Chatbot]
     
     %% Search Flow
@@ -47,8 +45,7 @@ flowchart TD
     ASSOC --> |Shows| BUNDLES[MBABundleGenerator<br/>Package Creator]
     SEQUENTIAL --> |Shows| SEQCOMP[MBASequentialAnalysis<br/>Next Best Action]
     
-    DEST --> |Shows| RECS
-    PACK --> |Shows| BUNDLES
+    HOME --> |Shows| RECS
     ANALYTICS --> |Shows| DASH[Analytics Dashboard<br/>TopRules, Seasonal, Segments]
     
     SEGMENTS --> |Displays| DASH
@@ -121,16 +118,12 @@ flowchart LR
     
     %% Output Components
     ASSOC_RULES --> RECS_COMP[MBARecommendations<br/>People Also Booked]
-    ASSOC_RULES --> BUNDLE_COMP[MBABundleGenerator<br/>Package Creator]
-    SEQ_RULES --> SEQ_COMP[MBASequentialAnalysis<br/>Next Best Action]
     SEASON_RULES --> SEASON_DASH[SeasonalInsights<br/>Analytics Dashboard]
     GEO_RULES --> GEO_DASH[Geographic Insights<br/>Analytics Dashboard]
     CUST_SEG --> SEG_DASH[CustomerSegmentAnalysis<br/>Analytics Dashboard]
     
     %% Display
-    RECS_COMP --> UI_SHOW[UI Display<br/>Destinations Page]
-    BUNDLE_COMP --> UI_SHOW2[UI Display<br/>Packages Page]
-    SEQ_COMP --> UI_SHOW3[UI Display<br/>Booking Page]
+    RECS_COMP --> UI_SHOW[UI Display<br/>Home Page - Search]
     SEASON_DASH --> UI_SHOW4[UI Display<br/>Analytics Page]
     GEO_DASH --> UI_SHOW4
     SEG_DASH --> UI_SHOW4
@@ -144,6 +137,7 @@ flowchart TD
     
     HOME --> |Scrolls| VIDEO[Sees Video Background<br/>WhatsApp Video 2025-10-16]
     HOME --> |Scrolls| DEST_CARDS[Sees Popular Destinations<br/>Mauritius, London, Paris, etc.]
+    HOME --> |Fills preferences| FORM[UserDetailsForm]
     
     HOME --> |Clicks Chat Button| CHAT_OPEN[Chatbot Opens]
     CHAT_OPEN --> CHAT_CONV[Conversation with AI<br/>Short, natural responses]
@@ -151,32 +145,16 @@ flowchart TD
     
     HOME --> |Clicks Navigation| NAV[Choose Page]
     
-    NAV --> |Destinations| DEST_PAGE[Destinations Page]
-    DEST_PAGE --> FILTER[Filter Sidebar<br/>Price, Activities, etc.]
-    DEST_PAGE --> DEST_GRID[Destination Cards<br/>With MBA Recommendations]
-    
-    NAV --> |Packages| PACK_PAGE[Packages Page]
-    PACK_PAGE --> PACK_FILTER[Package Filter<br/>Duration, Budget, etc.]
-    PACK_PAGE --> BUNDLE_SHOW[MBA Bundle Generator<br/>Auto-composed packages]
-    
-    NAV --> |Booking| BOOK_PAGE[Booking Page]
-    BOOK_PAGE --> BOOK_FORM[Multi-step Booking Form]
-    BOOK_FORM --> SEQ_SUGGEST[Sequential MBA<br/>Next Best Action]
-    BOOK_FORM --> BOOK_SUMMARY[Booking Summary]
-    
     NAV --> |Analytics| ANALYTICS_PAGE[Analytics Dashboard]
     ANALYTICS_PAGE --> TOP_RULES[Top Association Rules<br/>Correlated items]
     ANALYTICS_PAGE --> SEASONAL_VIEW[Seasonal Insights<br/>Patterns by month]
     ANALYTICS_PAGE --> SEGMENTS_VIEW[Customer Segments<br/>Travel types]
     
     MBA_TIPS --> USER_DECISION{User Decision}
-    DEST_GRID --> USER_DECISION
-    BUNDLE_SHOW --> USER_DECISION
-    SEQ_SUGGEST --> USER_DECISION
     
     USER_DECISION --> |Explores More| NAV
     USER_DECISION --> |Chats with AI| CHAT_CONV
-    USER_DECISION --> |Completes Booking| BOOK_FORM
+    USER_DECISION --> |Fills Form| FORM
 ```
 
 ## 5. Technical Stack & Data Flow
@@ -184,7 +162,7 @@ flowchart TD
 ```mermaid
 flowchart TB
     subgraph FRONTEND[Frontend - Next.js 15]
-        PAGES[Pages<br/>/, /destinations, /packages, /booking, /analytics]
+        PAGES[Pages<br/>/, /analytics, /details]
         COMPONENTS[Components<br/>HeroSection, Chatbot, SearchBar, etc.]
         HOOKS[Custom Hooks<br/>useChatbot, useSearch]
         UI_KIT[UI Components<br/>AnimatedCard, MagicButton, etc.]

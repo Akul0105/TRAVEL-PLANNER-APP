@@ -1,15 +1,7 @@
-/**
- * Hero Section Component
- * Main landing section with travel agency branding and search functionality
- * Features animated elements and call-to-action buttons
- */
-
 'use client';
 
 import { SearchBar } from './SearchBar';
 import { SearchSuggestion } from '@/types';
-import { FadeInText, SlideInText } from './ui/text-animations';
-import { AnimatedGradientText } from './ui/gradient-text';
 
 interface HeroSectionProps {
   onSearch: (query: string) => void;
@@ -20,14 +12,6 @@ interface HeroSectionProps {
   onSuggestionClick: (suggestion: SearchSuggestion) => void;
 }
 
-/**
- * Hero section component with travel agency branding
- * @param onSearch - Function to handle search queries
- * @param suggestions - Array of search suggestions
- * @param isLoading - Whether suggestions are loading
- * @param showSuggestions - Whether to show suggestions
- * @param onSuggestionClick - Function to handle suggestion clicks
- */
 export function HeroSection({
   onSearch,
   suggestions,
@@ -37,8 +21,7 @@ export function HeroSection({
   onSuggestionClick,
 }: HeroSectionProps) {
   return (
-    <section className="relative min-h-screen overflow-hidden">
-      {/* Video Background */}
+    <section className="relative min-h-screen overflow-hidden flex flex-col justify-center -mt-20 md:-mt-24 pt-20 md:pt-24">
       <div className="absolute inset-0 z-0">
         <video
           autoPlay
@@ -49,42 +32,28 @@ export function HeroSection({
         >
           <source src="/WhatsApp Video 2025-10-16 at 17.40.21.mp4" type="video/mp4" />
         </video>
-        {/* Overlay for better text readability */}
-        <div className="absolute inset-0 bg-black/40"></div>
+        <div className="absolute inset-0 bg-black/55" />
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 py-20">
-        <div className="text-center max-w-4xl mx-auto">
-          {/* Main Heading */}
-          <FadeInText delay={0.2} className="mb-8">
-            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
-              Your Dream{' '}
-              <AnimatedGradientText className="text-5xl md:text-7xl">
-                Travel
-              </AnimatedGradientText>{' '}
-              Awaits
-            </h1>
-            <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto leading-relaxed">
-              Discover amazing destinations, get personalized recommendations, and plan your perfect trip 
-              with our AI-powered travel agent. Experience the future of travel planning.
-            </p>
-          </FadeInText>
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32">
+        <div className="max-w-3xl">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold text-white mb-6 leading-[1.1] tracking-tight">
+            Your trusted partner for quality travel planning
+          </h1>
+          <p className="text-xl md:text-2xl text-white/90 mb-10 leading-relaxed">
+            Planify delivers expert travel planning, creating memorable trips with personalized recommendations and AI-powered suggestions.
+          </p>
 
-          {/* Search Bar */}
-          <SlideInText direction="up" delay={0.4} className="mb-12">
-            <SearchBar
-              onSearch={onSearch}
-              suggestions={suggestions}
-              marketBasketResults={marketBasketResults}
-              isLoading={isLoading}
-              showSuggestions={showSuggestions}
-              onSuggestionClick={onSuggestionClick}
-            />
-          </SlideInText>
-
+          <SearchBar
+            onSearch={onSearch}
+            suggestions={suggestions}
+            marketBasketResults={marketBasketResults}
+            isLoading={isLoading}
+            showSuggestions={showSuggestions}
+            onSuggestionClick={onSuggestionClick}
+          />
         </div>
       </div>
-
     </section>
   );
 }

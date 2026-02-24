@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { mbaEngine } from '@/lib/mba/engine';
-import { AnimatedCard, FadeInText } from '@/components/ui';
 import { Users, TrendingUp, DollarSign, Star, Target, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, RadialBarChart, RadialBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const COLORS = ['#3b82f6', '#10b981', '#8b5cf6', '#f59e0b'];
+const COLORS = ['#2c2825', '#6b6560', '#9c958f', '#c4bdb5'];
 
 export function CustomerSegmentAnalysis() {
   const [segments, setSegments] = useState<any[]>([]);
@@ -67,12 +66,12 @@ export function CustomerSegmentAnalysis() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl shadow-xl p-6">
+      <div className="bg-white rounded-lg border border-[#e8e4df] p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded mb-4"></div>
+          <div className="h-6 bg-[#e8e4df] rounded mb-4" />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+              <div key={i} className="h-32 bg-[#e8e4df] rounded" />
             ))}
           </div>
         </div>
@@ -100,20 +99,18 @@ export function CustomerSegmentAnalysis() {
   }));
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6">
-      <FadeInText className="mb-6">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">Customer Segment Analysis</h3>
-        <p className="text-gray-600">MBA-driven customer segmentation and behavior patterns</p>
-      </FadeInText>
+    <div className="bg-white rounded-lg border border-[#e8e4df] p-6">
+      <div className="mb-6">
+        <h3 className="font-[family-name:var(--font-playfair)] text-xl font-semibold text-[#2c2825] mb-1">Customer Segments</h3>
+        <p className="text-sm text-[#6b6560]">Segmentation and behavior patterns</p>
+      </div>
 
-      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Segment Size Pie Chart */}
-        <div className="bg-gray-50 rounded-xl p-6">
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">Segment Distribution</h4>
+        <div className="bg-[#faf8f5] rounded-lg p-6 border border-[#e8e4df]">
+          <h4 className="text-sm font-semibold text-[#2c2825] mb-4">Segment Distribution</h4>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
-              <Pie data={segmentSizeData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} outerRadius={80} fill="#8884d8" dataKey="value">
+              <Pie data={segmentSizeData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }: { name: string; percent?: number }) => `${name}: ${((percent ?? 0) * 100).toFixed(0)}%`} outerRadius={80} fill="#8884d8" dataKey="value">
                 {segmentSizeData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
@@ -124,9 +121,8 @@ export function CustomerSegmentAnalysis() {
           </ResponsiveContainer>
         </div>
 
-        {/* Satisfaction Radial Chart */}
-        <div className="bg-gray-50 rounded-xl p-6">
-          <h4 className="text-lg font-semibold text-gray-900 mb-4">Customer Satisfaction by Segment</h4>
+        <div className="bg-[#faf8f5] rounded-lg p-6 border border-[#e8e4df]">
+          <h4 className="text-sm font-semibold text-[#2c2825] mb-4">Satisfaction by Segment</h4>
           <ResponsiveContainer width="100%" height={300}>
             <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="80%" data={satisfactionData}>
               <RadialBar minAngle={15} label={{ position: 'insideStart', fill: '#fff' }} background clockWise dataKey="satisfaction" />
@@ -137,34 +133,31 @@ export function CustomerSegmentAnalysis() {
         </div>
       </div>
 
-      {/* Segment Comparison Bar Chart */}
-      <div className="bg-gray-50 rounded-xl p-6 mb-8">
-        <h4 className="text-lg font-semibold text-gray-900 mb-4">Segment Comparison</h4>
+      <div className="bg-[#faf8f5] rounded-lg p-6 border border-[#e8e4df] mb-8">
+        <h4 className="text-sm font-semibold text-[#2c2825] mb-4">Segment Comparison</h4>
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={segmentComparisonData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e8e4df" />
+            <XAxis dataKey="name" stroke="#6b6560" fontSize={12} />
+            <YAxis stroke="#6b6560" fontSize={12} />
             <Tooltip />
             <Legend />
-            <Bar dataKey="spend" fill="#3b82f6" name="Avg Spend ($)" />
-            <Bar dataKey="growth" fill="#10b981" name="Growth %" />
+            <Bar dataKey="spend" fill="#2c2825" name="Avg Spend ($)" />
+            <Bar dataKey="growth" fill="#6b6560" name="Growth %" />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Segment Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {segments.map((segment, index) => (
-          <AnimatedCard
+        {segments.map((segment) => (
+          <div
             key={segment.id}
-            delay={index * 0.1}
-            className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-all duration-300"
+            className="p-6 border border-[#e8e4df] rounded-lg bg-[#faf8f5]"
           >
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h4 className="text-xl font-bold text-gray-900 mb-2">{segment.name}</h4>
-                <p className="text-sm text-gray-600">{segment.size} customers</p>
+                <h4 className="text-lg font-semibold text-[#2c2825] mb-2">{segment.name}</h4>
+                <p className="text-sm text-[#6b6560]">{segment.size} customers</p>
               </div>
               <div className="text-right">
                 <div className="flex items-center space-x-2 mb-1">
@@ -247,7 +240,7 @@ export function CustomerSegmentAnalysis() {
                 Average transaction value is <strong>Rs {segment.avgSpend.toLocaleString()}</strong>.
               </p>
             </div>
-          </AnimatedCard>
+          </div>
         ))}
       </div>
 

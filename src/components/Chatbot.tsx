@@ -1,52 +1,93 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Trash2, Minimize2, Maximize2, CheckCircle2 } from 'lucide-react';
+import { Send, Bot, User, Trash2, Minimize2, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { ChatbotProps, ChatMessage, TripInfo, TripInfoStep } from '@/types';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/lib/supabase';
 
 const TRIP_INFO_STEPS: TripInfoStep[] = [
   'welcome',
   'destination',
-  'dates',
-  'travelers',
+  'pastDestinations',
+  'restaurantType',
+  'activities',
+  'placesVisited',
   'budget',
   'travelStyle',
-  'accommodation',
-  'interests',
   'complete'
 ];
 
 const STEP_QUESTIONS: Record<TripInfoStep, string> = {
-  welcome: "Great! I'd love to help you plan your perfect trip! 🧳✈️\n\nLet me ask you a few quick questions so I can create the best itinerary for you.",
-  destination: "Where would you like to travel? 🌍",
-  dates: "When are you planning to travel? Please share your travel dates (e.g., 'March 15-20' or 'Next month').",
-  travelers: "How many people will be traveling? 👥",
-  budget: "What's your budget range? (e.g., 'Rs 50,000', 'Rs 100,000-200,000', or 'budget-friendly')",
-  travelStyle: "What's your travel style? (Adventure, Relaxation, Cultural, Business, Family, Luxury, or Budget)",
-  accommodation: "What type of accommodation do you prefer? (Hotel, Resort, Apartment, Hostel, or Luxury)",
-  interests: "What are you most interested in? (e.g., 'beaches, museums, nightlife' or 'hiking, food, shopping')",
-  complete: "Perfect! I have all the information I need. Let me create your personalized travel plan! ✨"
+  welcome: "I'll ask a few questions about your preferences and past travel so we can suggest **personalized bundles** for you (using market basket analysis).",
+  destination: "Which **destination** are you interested in right now? (e.g. Paris, Mauritius, Tokyo)",
+  pastDestinations: "Which **destinations have you already visited**? (e.g. London, Bali, Dubai – list a few)",
+  restaurantType: "What **type of restaurants** do you enjoy? (e.g. local, fine dining, street food, casual)",
+  activities: "What **activities** do you like when you travel? (e.g. beaches, museums, hiking, food tours, nightlife)",
+  placesVisited: "Any **places or attractions** you've loved? (e.g. a specific museum, beach, or city area)",
+  budget: "What's your usual **budget style**? (budget-friendly, mid-range, or luxury)",
+  travelStyle: "What's your **travel style**? (Adventure, Relaxation, Cultural, Business, Family, Luxury, or Budget)",
+  complete: "Thanks! I have enough to suggest personalized bundles. Check your **Scrapbook** for recommendations."
 };
 
+function isEmail(str: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str.trim());
+}
+
 export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
+  const { user, profile, session, signInWithOtp, updateProfile } = useAuth();
   const [inputValue, setInputValue] = useState('');
   const [tripInfo, setTripInfo] = useState<TripInfo>({});
   const [currentStep, setCurrentStep] = useState<TripInfoStep>('welcome');
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: "Hey! I'm your travel planning assistant! 🧳\n\nI can help you plan your perfect trip, but first I need to gather some information about your travel preferences.\n\nWould you like to start planning a trip?",
-      timestamp: new Date(),
-    }
-  ]);
+  const [profileStep, setProfileStep] = useState<'name' | 'address'>('name');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const profilePromptSent = useRef(false);
+  const tripWelcomeSent = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const phase = !user ? 'auth' : !profile?.full_name ? 'profile' : 'trip';
+
+  useEffect(() => {
+    if (!user) {
+      setMessages([
+        { id: '1', role: 'assistant', content: "Hey! I'm your travel planning assistant. 🧳\n\nTo get started, **enter your email** and we'll send you a sign-in link. After you sign in, we can chat and I'll create personalized travel bundles for you.", timestamp: new Date() },
+      ]);
+      profilePromptSent.current = false;
+      tripWelcomeSent.current = false;
+      return;
+    }
+    if (!profile?.full_name) {
+      if (!profilePromptSent.current) {
+        profilePromptSent.current = true;
+        setMessages((prev) => {
+          const hasEmailFlow = prev.some((m) => m.content.includes('sign-in link') || m.content.includes('Check your email'));
+          if (hasEmailFlow) {
+            return [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "You're signed in! What's your **full name**?", timestamp: new Date() }];
+          }
+          return [{ id: '1', role: 'assistant', content: "You're signed in! What's your **full name**?", timestamp: new Date() }];
+        });
+        setProfileStep('name');
+      }
+      return;
+    }
+    profilePromptSent.current = false;
+    if (!tripWelcomeSent.current) {
+      tripWelcomeSent.current = true;
+      setMessages((prev) => {
+        const hasWelcome = prev.some((m) => m.content.includes('plan a trip') || m.content.includes('start planning'));
+        if (hasWelcome) return prev;
+        return [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "Would you like to **share your preferences** (destinations, restaurants, activities) so I can suggest personalized bundles? Type **yes** or **start**.", timestamp: new Date() }];
+      });
+    }
+    setCurrentStep('welcome');
+  }, [user?.id, profile?.full_name]);
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -56,73 +97,41 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
     if (isOpen && inputRef.current) inputRef.current.focus();
   }, [isOpen]);
 
-  // Check if all required trip info is collected
+  // Enough preferences for MBA-based bundles
   const isTripInfoComplete = (): boolean => {
-    return !!(
-      tripInfo.destination &&
-      tripInfo.startDate &&
-      tripInfo.numberOfTravelers &&
-      tripInfo.budget &&
-      tripInfo.travelStyle
-    );
+    return !!(tripInfo.destination && (tripInfo.pastDestinations?.length || tripInfo.restaurantPreferences || tripInfo.activityPreferences?.length || tripInfo.budget || tripInfo.travelStyle));
   };
 
-  // Extract information from user message
+  // Extract preferences from user message
   const extractTripInfo = (message: string, step: TripInfoStep): Partial<TripInfo> => {
     const lowerMessage = message.toLowerCase();
     const info: Partial<TripInfo> = {};
 
     switch (step) {
       case 'destination':
-        // Extract destination (simple extraction - can be enhanced)
         info.destination = message.trim();
         break;
-      
-      case 'dates':
-        // Extract dates (simple extraction - can be enhanced with date parsing)
-        const dateMatch = message.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\w+\s+\d{1,2})/gi);
-        if (dateMatch && dateMatch.length >= 2) {
-          info.startDate = dateMatch[0];
-          info.endDate = dateMatch[1];
-        } else if (dateMatch && dateMatch.length === 1) {
-          info.startDate = dateMatch[0];
-        } else {
-          info.startDate = message.trim();
-        }
+      case 'pastDestinations':
+        info.pastDestinations = message.split(/[,;]/).map(s => s.trim()).filter(Boolean);
         break;
-      
-      case 'travelers':
-        const travelerMatch = message.match(/\d+/);
-        if (travelerMatch) {
-          info.numberOfTravelers = parseInt(travelerMatch[0]);
-        }
+      case 'restaurantType':
+        info.restaurantPreferences = message.trim();
         break;
-      
+      case 'activities':
+        info.activityPreferences = message.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+        break;
+      case 'placesVisited':
+        info.placesVisited = message.split(/[,;]/).map(s => s.trim()).filter(Boolean);
+        break;
       case 'budget':
         info.budget = message.trim();
         break;
-      
       case 'travelStyle':
         const styles = ['adventure', 'relaxation', 'cultural', 'business', 'family', 'luxury', 'budget'];
         const foundStyle = styles.find(style => lowerMessage.includes(style));
-        if (foundStyle) {
-          info.travelStyle = foundStyle as TripInfo['travelStyle'];
-        }
-        break;
-      
-      case 'accommodation':
-        const accommodations = ['hotel', 'resort', 'apartment', 'hostel', 'luxury'];
-        const foundAccommodation = accommodations.find(acc => lowerMessage.includes(acc));
-        if (foundAccommodation) {
-          info.accommodationPreference = foundAccommodation as TripInfo['accommodationPreference'];
-        }
-        break;
-      
-      case 'interests':
-        info.interests = message.split(',').map(i => i.trim()).filter(Boolean);
+        if (foundStyle) info.travelStyle = foundStyle as TripInfo['travelStyle'];
         break;
     }
-
     return info;
   };
 
@@ -153,8 +162,47 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
     setIsLoading(true);
 
     try {
+      // --- Auth phase: collect email and send sign-in link
+      if (phase === 'auth') {
+        if (!isEmail(userInput)) {
+          setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "Please enter a valid email address.", timestamp: new Date() }]);
+          setIsLoading(false);
+          return;
+        }
+        const { error } = await signInWithOtp(userInput);
+        const assistantMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: error
+            ? "We couldn't send the sign-in link. Please try again or use another email."
+            : "We've sent you a **sign-in link** to your email. Click the link to sign in, then return here and refresh or continue chatting.",
+          timestamp: new Date(),
+        };
+        setMessages(prev => [...prev, assistantMessage]);
+        setIsLoading(false);
+        return;
+      }
+
+      // --- Profile phase: collect name then address
+      if (phase === 'profile') {
+        if (profileStep === 'name') {
+          await updateProfile({ full_name: userInput });
+          setProfileStep('address');
+          setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "Thanks! What's your **address**? (You can type 'skip' if you prefer not to share.)", timestamp: new Date() }]);
+          setIsLoading(false);
+          return;
+        }
+        if (profileStep === 'address') {
+          if (!userInput.toLowerCase().includes('skip')) await updateProfile({ address: userInput });
+          setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "All set! Would you like to **share your preferences** so I can suggest personalized bundles? Type **yes** or **start** and I'll ask about destinations, restaurants, activities and more.", timestamp: new Date() }]);
+          setCurrentStep('welcome');
+          setIsLoading(false);
+          return;
+        }
+      }
+
       // If user wants to start planning, begin the information collection
-      if (currentStep === 'welcome' && (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('start') || userInput.toLowerCase().includes('plan'))) {
+      if (phase === 'trip' && currentStep === 'welcome' && (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('start') || userInput.toLowerCase().includes('plan'))) {
         const nextStep = getNextStep('welcome');
         setCurrentStep(nextStep);
         const assistantMessage: ChatMessage = {
@@ -168,8 +216,8 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
         return;
       }
 
-      // If we're still collecting information
-      if (currentStep !== 'complete' && currentStep !== 'welcome') {
+      // If we're still collecting information (trip phase only)
+      if (phase === 'trip' && currentStep !== 'complete' && currentStep !== 'welcome') {
         // Extract information from user's message
         const extractedInfo = extractTripInfo(userInput, currentStep);
         const updatedTripInfo = { ...tripInfo, ...extractedInfo };
@@ -179,12 +227,30 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
         const nextStep = getNextStep(currentStep);
         setCurrentStep(nextStep);
 
-        // If we've completed all steps, allow planning
+        // If we've completed all steps: save MBA bundles and tell user to check Scrapbook
         if (nextStep === 'complete' || isTripInfoComplete()) {
+          let scrapbookNote = '';
+          try {
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            const token = currentSession?.access_token;
+            if (token && updatedTripInfo.destination) {
+              const res = await fetch('/api/mba/suggest-bundles', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ tripInfo: updatedTripInfo }),
+              });
+              const data = await res.json();
+              if (data?.success && data?.count > 0) {
+                scrapbookNote = `\n\nI've added **${data.count} personalized bundle(s)** to your **Scrapbook** (based on market basket analysis). Check the **Scrapbook** page to see them!`;
+              } else if (data?.error) {
+                scrapbookNote = `\n\n(Saving bundles failed: ${data.error}. You can try again from Scrapbook.)`;
+              }
+            }
+          } catch { /* ignore */ }
           const assistantMessage: ChatMessage = {
             id: (Date.now() + 1).toString(),
             role: 'assistant',
-            content: STEP_QUESTIONS['complete'] + '\n\nNow I can help you plan your trip! What would you like to know?',
+            content: STEP_QUESTIONS['complete'] + scrapbookNote + '\n\nWhat would you like to know next?',
             timestamp: new Date(),
           };
           setMessages(prev => [...prev, assistantMessage]);
@@ -204,8 +270,8 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
         return;
       }
 
-      // If trip info is complete, allow normal chat with API
-      if (isTripInfoComplete() || currentStep === 'complete') {
+      // If trip info is complete, allow normal chat with API (trip phase only)
+      if (phase === 'trip' && (isTripInfoComplete() || currentStep === 'complete')) {
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -228,7 +294,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
         };
 
         setMessages(prev => [...prev, assistantMessage]);
-      } else {
+      } else if (phase === 'trip') {
         // Still collecting info - guide user back
         const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
@@ -257,28 +323,33 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
   const clearMessages = () => {
     setTripInfo({});
     setCurrentStep('welcome');
-    setMessages([
-      {
-        id: '1',
-        role: 'assistant',
-        content: "Hey! I'm your travel planning assistant! 🧳\n\nI can help you plan your perfect trip, but first I need to gather some information about your travel preferences.\n\nWould you like to start planning a trip?",
-        timestamp: new Date(),
-      }
-    ]);
+    setProfileStep('name');
+    if (!user) {
+      setMessages([{ id: '1', role: 'assistant', content: "Enter your **email** to get started and we'll send you a sign-in link.", timestamp: new Date() }]);
+    } else if (!profile?.full_name) {
+      setMessages([{ id: '1', role: 'assistant', content: "What's your **full name**?", timestamp: new Date() }]);
+      setProfileStep('name');
+    } else {
+      setMessages([{ id: '1', role: 'assistant', content: "Would you like to **share your preferences** for personalized bundles? Type **yes** or **start**.", timestamp: new Date() }]);
+    }
   };
 
   const formatTime = (timestamp: Date) =>
     timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  // Calculate progress percentage
   const progressPercentage = () => {
-    const requiredFields = ['destination', 'startDate', 'numberOfTravelers', 'budget', 'travelStyle'];
-    const completedFields = requiredFields.filter(field => {
-      if (field === 'startDate') return !!tripInfo.startDate;
-      if (field === 'numberOfTravelers') return !!tripInfo.numberOfTravelers;
-      return !!tripInfo[field as keyof TripInfo];
+    const steps = TRIP_INFO_STEPS.filter(s => s !== 'welcome' && s !== 'complete');
+    const done = steps.filter(s => {
+      if (s === 'destination') return !!tripInfo.destination;
+      if (s === 'pastDestinations') return !!tripInfo.pastDestinations?.length;
+      if (s === 'restaurantType') return !!tripInfo.restaurantPreferences;
+      if (s === 'activities') return !!tripInfo.activityPreferences?.length;
+      if (s === 'placesVisited') return !!tripInfo.placesVisited?.length;
+      if (s === 'budget') return !!tripInfo.budget;
+      if (s === 'travelStyle') return !!tripInfo.travelStyle;
+      return false;
     });
-    return (completedFields.length / requiredFields.length) * 100;
+    return (done.length / steps.length) * 100;
   };
 
   return (
@@ -305,7 +376,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
               <div>
                 <h3 className="text-white font-semibold">Travel Agent AI</h3>
                 <p className="text-blue-100 text-xs">
-                  {isTripInfoComplete() ? 'Ready to plan!' : 'Collecting info...'}
+                  {phase === 'auth' ? 'Sign in' : phase === 'profile' ? 'Profile' : isTripInfoComplete() ? 'Ready to plan!' : 'Collecting info...'}
                 </p>
               </div>
             </div>
@@ -328,7 +399,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
           </div>
 
           {/* Progress Bar */}
-          {!isTripInfoComplete() && currentStep !== 'welcome' && (
+          {phase === 'trip' && !isTripInfoComplete() && currentStep !== 'welcome' && (
             <div className="px-4 pt-3 pb-2 bg-gray-50 border-b border-gray-200">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-gray-600">Trip Information</span>
@@ -408,7 +479,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
 
           {/* Input */}
           <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 bg-white">
-            {!isTripInfoComplete() && currentStep !== 'welcome' && (
+            {phase === 'trip' && !isTripInfoComplete() && currentStep !== 'welcome' && (
               <div className="mb-2 text-xs text-gray-500">
                 {currentStep !== 'complete' && `Answering: ${STEP_QUESTIONS[currentStep].split('\n')[0]}`}
               </div>
@@ -420,7 +491,13 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={
-                  isTripInfoComplete() 
+                  phase === 'auth'
+                    ? "Your email address..."
+                    : phase === 'profile'
+                    ? profileStep === 'name'
+                      ? "Your full name..."
+                      : "Your address or 'skip'..."
+                    : isTripInfoComplete()
                     ? "Ask about your trip, packages, or travel advice..."
                     : currentStep === 'welcome'
                     ? "Type 'yes' or 'start' to begin..."

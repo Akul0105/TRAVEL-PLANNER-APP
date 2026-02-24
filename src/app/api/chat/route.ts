@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Messages are required' }, { status: 400 });
     }
 
-    // 2. Use the Gemini service to send the message with trip info
+    // 2. Use Mistral service to send the message with trip info / preferences
     // The service handles the API call and formatting
     const aiResponse = await sendChatMessage(messages, tripInfo);
 

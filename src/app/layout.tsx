@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Navigation } from "@/components/layout/Navigation";
 import { ChatbotWrapper } from "@/components/ChatbotWrapper";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,14 +15,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  display: "swap",
+});
+
 // ✅ Metadata (without viewport)
 export const metadata: Metadata = {
-  title: "Travel Agent Planner - AI-Powered Travel Planning",
+  title: "Planify - AI-Powered Travel Planning",
   description:
-    "Discover amazing destinations, get personalized recommendations, and plan your perfect trip with our AI-powered travel agent. Experience the future of travel planning with market basket analysis.",
+    "Discover amazing destinations, get personalized recommendations, and plan your perfect trip with our AI-powered travel agent.",
   keywords:
-    "travel, AI, chatbot, travel planning, destinations, market basket analysis, Mystral AI",
-  authors: [{ name: "Travel Agent Planner Team" }],
+    "travel, AI, chatbot, travel planning, destinations, Planify",
+  authors: [{ name: "Planify" }],
 };
 
 // ✅ Viewport (moved to its own export)
@@ -36,13 +43,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="scroll-smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} antialiased bg-white text-black`}
       >
-        <Navigation />
-        {children}
-        <ChatbotWrapper />
+        <AuthProvider>
+          <Navigation />
+          {children}
+          <ChatbotWrapper />
+        </AuthProvider>
       </body>
     </html>
   );

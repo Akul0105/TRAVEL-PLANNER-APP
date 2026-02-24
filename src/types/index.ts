@@ -94,9 +94,13 @@ export interface FloatingChatIconProps {
   isOpen: boolean;
 }
 
-// Trip information interface for collecting user trip details
+// Trip information / preferences for MBA-based personalized bundles
 export interface TripInfo {
   destination?: string;
+  pastDestinations?: string[];
+  restaurantPreferences?: string;
+  activityPreferences?: string[];
+  placesVisited?: string[];
   startDate?: string;
   endDate?: string;
   numberOfTravelers?: number;
@@ -106,20 +110,34 @@ export interface TripInfo {
   interests?: string[];
 }
 
-// Trip information collection state
+// Preference collection steps (for MBA bundles, not booking)
 export type TripInfoStep = 
   | 'welcome'
   | 'destination'
-  | 'dates'
-  | 'travelers'
+  | 'pastDestinations'
+  | 'restaurantType'
+  | 'activities'
+  | 'placesVisited'
   | 'budget'
   | 'travelStyle'
-  | 'accommodation'
-  | 'interests'
   | 'complete';
 
 export interface TripInfoState {
   currentStep: TripInfoStep;
   tripInfo: TripInfo;
   isComplete: boolean;
+}
+
+// User profile for personalized bundle suggestions (persisted in localStorage)
+export interface UserProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  nationality: string;
+  preferredDestinations?: string[];
+  travelStyle?: 'adventure' | 'relaxation' | 'cultural' | 'business' | 'family' | 'luxury' | 'budget';
+  typicalTravelers?: number;
+  budgetRange?: 'budget' | 'mid-range' | 'luxury';
+  interests?: string[];
 }
