@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { mbaEngine } from '@/lib/mba/engine';
+import { formatPriceInMRU } from '@/lib/currency';
 import { TrendingUp, Target, DollarSign } from 'lucide-react';
 
 export function BusinessIntelligence() {
@@ -96,7 +97,7 @@ export function BusinessIntelligence() {
             {segments.map((segment, index) => (
               <div key={index} className="flex justify-between">
                 <span className="text-sm text-[#6b6560]">{segment.name}</span>
-                <span className="text-sm font-medium text-[#2c2825]">Rs {segment.avgSpend.toLocaleString()}</span>
+                <span className="text-sm font-medium text-[#2c2825]">{formatPriceInMRU(segment.avgSpend)}</span>
               </div>
             ))}
           </div>

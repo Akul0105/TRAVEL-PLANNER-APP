@@ -168,57 +168,85 @@ export class MBAEngine {
   }
 
   private calculateAssociationRules() {
-    const minSupport = 0.1;
+    const minSupport = 0.08;
     const minConfidence = 0.3;
-    
-    // Find frequent itemsets
+    const N = this.transactions.length;
+
+    // Item support: P(item) = count(item) / N
     const itemCounts = new Map<string, number>();
     this.transactions.forEach(transaction => {
       transaction.forEach(item => {
         itemCounts.set(item.id, (itemCounts.get(item.id) || 0) + 1);
       });
     });
-    
+
     const frequentItems = Array.from(itemCounts.entries())
-      .filter(([_, count]) => count / this.transactions.length >= minSupport)
-      .map(([itemId, _]) => this.items.find(item => item.id === itemId)!);
-    
-    // Generate association rules
+      .filter(([_, count]) => count / N >= minSupport)
+      .map(([itemId]) => this.items.find(item => item.id === itemId)!)
+      .filter(Boolean);
+
+    // --- 1-item antecedent rules: A → B ---
+    // Support(A,B) = P(A∩B), Confidence(A→B) = P(B|A) = support(A,B)/support(A), Lift = confidence/support(B)
     for (let i = 0; i < frequentItems.length; i++) {
-      for (let j = i + 1; j < frequentItems.length; j++) {
-        const item1 = frequentItems[i];
-        const item2 = frequentItems[j];
-        
-        // Calculate support for both items together
-        const bothCount = this.transactions.filter(transaction =>
-          transaction.some(item => item.id === item1.id) &&
-          transaction.some(item => item.id === item2.id)
+      for (let j = 0; j < frequentItems.length; j++) {
+        if (i === j) continue;
+        const itemA = frequentItems[i];
+        const itemB = frequentItems[j];
+        const bothCount = this.transactions.filter(t =>
+          t.some(x => x.id === itemA.id) && t.some(x => x.id === itemB.id)
         ).length;
-        
-        const support = bothCount / this.transactions.length;
-        const confidence1to2 = bothCount / itemCounts.get(item1.id)!;
-        const confidence2to1 = bothCount / itemCounts.get(item2.id)!;
-        
-        if (support >= minSupport && confidence1to2 >= minConfidence) {
+        const supportAB = bothCount / N;
+        const supportA = itemCounts.get(itemA.id)! / N;
+        const supportB = itemCounts.get(itemB.id)! / N;
+        const confidence = supportA > 0 ? supportAB / supportA : 0;
+        const lift = supportB > 0 ? confidence / supportB : 0;
+        if (supportAB >= minSupport && confidence >= minConfidence) {
           this.rules.push({
-            antecedent: [item1],
-            consequent: [item2],
-            support,
-            confidence: confidence1to2,
-            lift: confidence1to2 / (itemCounts.get(item2.id)! / this.transactions.length),
-            conviction: (1 - itemCounts.get(item2.id)! / this.transactions.length) / (1 - confidence1to2)
+            antecedent: [itemA],
+            consequent: [itemB],
+            support: supportAB,
+            confidence,
+            lift,
+            conviction: supportB < 1 ? (1 - supportB) / (1 - confidence) : 0,
           });
         }
-        
-        if (support >= minSupport && confidence2to1 >= minConfidence) {
-          this.rules.push({
-            antecedent: [item2],
-            consequent: [item1],
-            support,
-            confidence: confidence2to1,
-            lift: confidence2to1 / (itemCounts.get(item1.id)! / this.transactions.length),
-            conviction: (1 - itemCounts.get(item1.id)! / this.transactions.length) / (1 - confidence2to1)
-          });
+      }
+    }
+
+    // --- 2-item antecedent rules: A + B → C (real MBA format for examiner) ---
+    // Support(A,B,C) = P(A∩B∩C), Confidence((A,B)→C) = support(A,B,C)/support(A,B), Lift = confidence/support(C)
+    for (let i = 0; i < frequentItems.length; i++) {
+      for (let j = i + 1; j < frequentItems.length; j++) {
+        const itemA = frequentItems[i];
+        const itemB = frequentItems[j];
+        const pairCount = this.transactions.filter(t =>
+          t.some(x => x.id === itemA.id) && t.some(x => x.id === itemB.id)
+        ).length;
+        const supportAB = pairCount / N;
+        if (supportAB < minSupport) continue;
+
+        for (let k = 0; k < frequentItems.length; k++) {
+          if (k === i || k === j) continue;
+          const itemC = frequentItems[k];
+          const tripleCount = this.transactions.filter(t =>
+            t.some(x => x.id === itemA.id) &&
+            t.some(x => x.id === itemB.id) &&
+            t.some(x => x.id === itemC.id)
+          ).length;
+          const supportABC = tripleCount / N;
+          const supportC = itemCounts.get(itemC.id)! / N;
+          const confidence = pairCount > 0 ? tripleCount / pairCount : 0;
+          const lift = supportC > 0 ? confidence / supportC : 0;
+          if (supportABC >= minSupport && confidence >= minConfidence) {
+            this.rules.push({
+              antecedent: [itemA, itemB],
+              consequent: [itemC],
+              support: supportABC,
+              confidence,
+              lift,
+              conviction: supportC < 1 ? (1 - supportC) / (1 - confidence) : 0,
+            });
+          }
         }
       }
     }
@@ -421,6 +449,18 @@ export class MBAEngine {
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
       .map(bundle => bundle.items);
+  }
+
+  /** Find the best rule that is fully contained in the bundle (bundle contains all antecedent + consequent items). Used to attach real support/confidence/lift to stored bundles. */
+  public getBestMatchingRule(bundleItems: MBAItem[]): MBAAssociationRule | null {
+    const bundleIds = new Set(bundleItems.map((i) => i.id));
+    let best: MBAAssociationRule | null = null;
+    for (const rule of this.rules) {
+      const ruleItems = [...rule.antecedent, ...rule.consequent];
+      const allInBundle = ruleItems.every((i) => bundleIds.has(i.id));
+      if (allInBundle && (!best || rule.lift > best.lift)) best = rule;
+    }
+    return best;
   }
 
   public getTopRules(limit: number = 10): MBAAssociationRule[] {

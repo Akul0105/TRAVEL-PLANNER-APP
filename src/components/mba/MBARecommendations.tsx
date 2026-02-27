@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { mbaEngine, MBAItem } from '@/lib/mba/engine';
+import { formatPriceInMRU } from '@/lib/currency';
 import { AnimatedCard, FadeInText } from '@/components/ui';
 import { TrendingUp, Users, Star, ArrowRight } from 'lucide-react';
 
@@ -166,7 +167,7 @@ export function MBARecommendations({
                 <p className="text-sm text-gray-600 capitalize">{item.category}</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-blue-600">Rs {item.price.toLocaleString()}</p>
+                <p className="text-lg font-bold text-blue-600">{formatPriceInMRU(item.price)}</p>
                 {showConfidence && (
                   <p className="text-xs text-gray-500">Confidence: 85%</p>
                 )}

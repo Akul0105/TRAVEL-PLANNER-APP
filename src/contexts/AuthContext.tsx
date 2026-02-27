@@ -13,7 +13,7 @@ type AuthContextType = {
   signInWithOtp: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  updateProfile: (updates: Partial<Pick<Profile, 'full_name' | 'address' | 'travel_style' | 'budget_preference'>>) => Promise<{ error: Error | null }>;
+  updateProfile: (updates: Partial<Pick<Profile, 'full_name' | 'address' | 'travel_style' | 'budget_preference' | 'activities_liked' | 'food_preferences' | 'bucket_list'>>) => Promise<{ error: Error | null }>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setProfile(null);
   }, []);
 
-  const updateProfile = useCallback(async (updates: Partial<Pick<Profile, 'full_name' | 'address' | 'travel_style' | 'budget_preference'>>) => {
+  const updateProfile = useCallback(async (updates: Partial<Pick<Profile, 'full_name' | 'address' | 'travel_style' | 'budget_preference' | 'activities_liked' | 'food_preferences' | 'bucket_list'>>) => {
     if (!user?.id) return { error: new Error('Not signed in') as Error };
     const { error } = await supabase
       .from('profiles')

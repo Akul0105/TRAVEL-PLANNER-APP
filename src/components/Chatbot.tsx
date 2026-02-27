@@ -8,6 +8,7 @@ import { ChatbotProps, ChatMessage, TripInfo, TripInfoStep } from '@/types';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
+import type { ChatMessageRow } from '@/lib/supabase';
 
 const TRIP_INFO_STEPS: TripInfoStep[] = [
   'welcome',
@@ -44,14 +45,24 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
   const [currentStep, setCurrentStep] = useState<TripInfoStep>('welcome');
   const [profileStep, setProfileStep] = useState<'name' | 'address'>('name');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const profilePromptSent = useRef(false);
   const tripWelcomeSent = useRef(false);
+  const sessionLoaded = useRef(false);
+  const skipNextWelcomeSet = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const phase = !user ? 'auth' : !profile?.full_name ? 'profile' : 'trip';
+
+  const tripWelcomeMessage: ChatMessage = {
+    id: 'welcome',
+    role: 'assistant',
+    content: "Would you like to **share your preferences** (destinations, restaurants, activities) so I can suggest personalized bundles? Type **yes** or **start**.",
+    timestamp: new Date(),
+  };
 
   useEffect(() => {
     if (!user) {
@@ -60,6 +71,8 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
       ]);
       profilePromptSent.current = false;
       tripWelcomeSent.current = false;
+      sessionLoaded.current = false;
+      setCurrentSessionId(null);
       return;
     }
     if (!profile?.full_name) {
@@ -74,20 +87,53 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
         });
         setProfileStep('name');
       }
+      setCurrentSessionId(null);
       return;
     }
     profilePromptSent.current = false;
-    if (!tripWelcomeSent.current) {
-      tripWelcomeSent.current = true;
-      setMessages((prev) => {
-        const hasWelcome = prev.some((m) => m.content.includes('plan a trip') || m.content.includes('start planning'));
-        if (hasWelcome) return prev;
-        return [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "Would you like to **share your preferences** (destinations, restaurants, activities) so I can suggest personalized bundles? Type **yes** or **start**.", timestamp: new Date() }];
-      });
-    }
-    setCurrentStep('welcome');
+    // Trip phase: restore persisted chat or show welcome
+    if (sessionLoaded.current) return;
+    sessionLoaded.current = true;
+    (async () => {
+      const { data: sessions } = await supabase
+        .from('chat_sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1);
+      const session = sessions?.[0];
+      if (!session) {
+        tripWelcomeSent.current = true;
+        if (!skipNextWelcomeSet.current) setMessages([tripWelcomeMessage]);
+        skipNextWelcomeSet.current = false;
+        setCurrentSessionId(null);
+        setCurrentStep('welcome');
+        return;
+      }
+      const { data: rows } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('session_id', session.id)
+        .order('created_at', { ascending: true });
+      const loaded = (rows ?? []) as ChatMessageRow[];
+      if (loaded.length > 0) {
+        setMessages(loaded.map((m) => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          timestamp: new Date(m.created_at),
+        })));
+        setCurrentSessionId(session.id);
+        tripWelcomeSent.current = true;
+      } else {
+        tripWelcomeSent.current = true;
+        if (!skipNextWelcomeSet.current) setMessages([tripWelcomeMessage]);
+        skipNextWelcomeSet.current = false;
+        setCurrentSessionId(session.id);
+      }
+      setCurrentStep('welcome');
+    })();
   }, [user?.id, profile?.full_name]);
-
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -156,13 +202,38 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
     const userInput = inputValue.trim();
     setInputValue('');
+    setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
 
+    const persistMessage = async (sessionId: string, role: 'user' | 'assistant', content: string) => {
+      await supabase.from('chat_messages').insert({ session_id: sessionId, role, content });
+    };
+    const ensureSession = async (): Promise<string | null> => {
+      if (currentSessionId) return currentSessionId;
+      if (!user?.id) return null;
+      const { data: row, error } = await supabase
+        .from('chat_sessions')
+        .insert({ user_id: user.id })
+        .select('id')
+        .single();
+      if (!error && row?.id) {
+        skipNextWelcomeSet.current = true;
+        setCurrentSessionId(row.id);
+        return row.id;
+      }
+      return null;
+    };
+
+    let chatSessionId: string | null = null;
+      if (phase === 'trip' && user) {
+        chatSessionId = await ensureSession();
+        if (chatSessionId) await persistMessage(chatSessionId, 'user', userInput);
+      }
+
     try {
-      // --- Auth phase: collect email and send sign-in link
+      // --- Auth phase: collect email and sign-in link
       if (phase === 'auth') {
         if (!isEmail(userInput)) {
           setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "Please enter a valid email address.", timestamp: new Date() }]);
@@ -211,6 +282,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
           content: STEP_QUESTIONS[nextStep],
           timestamp: new Date(),
         };
+        if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
         setMessages(prev => [...prev, assistantMessage]);
         setIsLoading(false);
         return;
@@ -234,16 +306,33 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
             const { data: { session: currentSession } } = await supabase.auth.getSession();
             const token = currentSession?.access_token;
             if (token && updatedTripInfo.destination) {
-              const res = await fetch('/api/mba/suggest-bundles', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ tripInfo: updatedTripInfo }),
-              });
-              const data = await res.json();
-              if (data?.success && data?.count > 0) {
-                scrapbookNote = `\n\nI've added **${data.count} personalized bundle(s)** to your **Scrapbook** (based on market basket analysis). Check the **Scrapbook** page to see them!`;
-              } else if (data?.error) {
-                scrapbookNote = `\n\n(Saving bundles failed: ${data.error}. You can try again from Scrapbook.)`;
+              const [bundlesRes, packageRes] = await Promise.all([
+                fetch('/api/mba/suggest-bundles', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ tripInfo: updatedTripInfo }),
+                }),
+                fetch('/api/packages/suggest', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({
+                    tripInfo: {
+                      destination: updatedTripInfo.destination,
+                      budget: updatedTripInfo.budget,
+                      travelStyle: updatedTripInfo.travelStyle,
+                    },
+                  }),
+                }),
+              ]);
+              const bundlesData = await bundlesRes.json();
+              const packageData = await packageRes.json();
+              if (bundlesData?.success && bundlesData?.count > 0) {
+                scrapbookNote = `\n\nI've added **${bundlesData.count} personalized bundle(s)** to your **Scrapbook** (market basket analysis).`;
+              }
+              if (packageData?.success && packageData?.package) {
+                scrapbookNote += `\n\nI've also created a **suggested travel package** for you (destination, hotel, activities, and why it fits you). Check the **Scrapbook** page to see everything!`;
+              } else if (!scrapbookNote && (bundlesData?.error || packageData?.error)) {
+                scrapbookNote = `\n\n(Saving to Scrapbook failed. You can try again from the Scrapbook page.)`;
               }
             }
           } catch { /* ignore */ }
@@ -253,6 +342,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
             content: STEP_QUESTIONS['complete'] + scrapbookNote + '\n\nWhat would you like to know next?',
             timestamp: new Date(),
           };
+          if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
           setMessages(prev => [...prev, assistantMessage]);
           setIsLoading(false);
           return;
@@ -265,6 +355,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
           content: `Got it! 👍\n\n${STEP_QUESTIONS[nextStep]}`,
           timestamp: new Date(),
         };
+        if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
         setMessages(prev => [...prev, assistantMessage]);
         setIsLoading(false);
         return;
@@ -272,12 +363,18 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
 
       // If trip info is complete, allow normal chat with API (trip phase only)
       if (phase === 'trip' && (isTripInfoComplete() || currentStep === 'complete')) {
+        const profileContext = profile ? {
+          activities_liked: (profile.activities_liked ?? []).slice(0, 10),
+          food_preferences: (profile.food_preferences ?? []).slice(0, 10),
+          bucket_list: (profile.bucket_list ?? []).slice(0, 10),
+        } : undefined;
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             messages: [...messages, userMessage],
-            tripInfo: tripInfo 
+            tripInfo: tripInfo,
+            profileContext,
           }),
         });
 
@@ -292,7 +389,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
           content: data.response || "Hmm... I didn't quite get that. Could you ask differently?",
           timestamp: new Date(),
         };
-
+        if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
         setMessages(prev => [...prev, assistantMessage]);
       } else if (phase === 'trip') {
         // Still collecting info - guide user back
@@ -302,6 +399,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
           content: "I still need a bit more information to plan your trip perfectly! Let me continue asking questions.\n\n" + STEP_QUESTIONS[currentStep],
           timestamp: new Date(),
         };
+        if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
         setMessages(prev => [...prev, assistantMessage]);
       }
     } catch (error) {
@@ -321,6 +419,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
   };
 
   const clearMessages = () => {
+    setCurrentSessionId(null);
     setTripInfo({});
     setCurrentStep('welcome');
     setProfileStep('name');
@@ -330,7 +429,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
       setMessages([{ id: '1', role: 'assistant', content: "What's your **full name**?", timestamp: new Date() }]);
       setProfileStep('name');
     } else {
-      setMessages([{ id: '1', role: 'assistant', content: "Would you like to **share your preferences** for personalized bundles? Type **yes** or **start**.", timestamp: new Date() }]);
+      setMessages([tripWelcomeMessage]);
     }
   };
 
@@ -361,21 +460,21 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
           exit={{ opacity: 0, scale: 0.8, y: 20 }}
           transition={{ duration: 0.3 }}
           className={cn(
-            "fixed bottom-24 right-6 bg-white rounded-2xl shadow-2xl border border-gray-200 z-50 flex flex-col",
+            "fixed bottom-24 right-6 bg-[#faf8f5] rounded-2xl shadow-2xl border border-[#e8e4df] z-50 flex flex-col",
             isExpanded
               ? "w-screen h-screen bottom-0 right-0 rounded-none"
               : "w-96 h-[600px]"
           )}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-500 to-purple-600 rounded-t-2xl">
+          <div className="flex items-center justify-between p-4 border-b border-[#e8e4df] bg-[#2c2825] rounded-t-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                <Bot className="w-5 h-5 text-blue-500" />
+              <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center">
+                <Bot className="w-5 h-5 text-[#2c2825]" />
               </div>
               <div>
-                <h3 className="text-white font-semibold">Travel Agent AI</h3>
-                <p className="text-blue-100 text-xs">
+                <h3 className="font-[family-name:var(--font-playfair)] text-white font-semibold">Travel Agent</h3>
+                <p className="text-[#e8e4df] text-xs">
                   {phase === 'auth' ? 'Sign in' : phase === 'profile' ? 'Profile' : isTripInfoComplete() ? 'Ready to plan!' : 'Collecting info...'}
                 </p>
               </div>
@@ -383,14 +482,14 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
             <div className="flex items-center gap-2">
               <button
                 onClick={clearMessages}
-                className="p-1 text-white hover:bg-white/20 rounded-lg"
+                className="p-1 text-[#e8e4df] hover:bg-white/10 rounded-lg"
                 title="Clear chat"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
               <button
                 onClick={() => setIsExpanded(prev => !prev)}
-                className="p-1 text-white hover:bg-white/20 rounded-lg"
+                className="p-1 text-[#e8e4df] hover:bg-white/10 rounded-lg"
                 title={isExpanded ? "Exit Fullscreen" : "Go Fullscreen"}
               >
                 {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -400,24 +499,24 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
 
           {/* Progress Bar */}
           {phase === 'trip' && !isTripInfoComplete() && currentStep !== 'welcome' && (
-            <div className="px-4 pt-3 pb-2 bg-gray-50 border-b border-gray-200">
+            <div className="px-4 pt-3 pb-2 bg-white border-b border-[#e8e4df]">
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-gray-600">Trip Information</span>
-                <span className="text-xs font-medium text-blue-600">{Math.round(progressPercentage())}%</span>
+                <span className="text-xs text-[#6b6560]">Trip information</span>
+                <span className="text-xs font-medium text-[#2c2825]">{Math.round(progressPercentage())}%</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-[#e8e4df] rounded-full h-2">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercentage()}%` }}
                   transition={{ duration: 0.3 }}
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
+                  className="bg-[#2c2825] h-2 rounded-full"
                 />
               </div>
             </div>
           )}
 
           {/* Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#faf8f5]">
             {messages.map((message) => (
               <motion.div
                 key={message.id}
@@ -427,31 +526,31 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 className={cn("flex gap-3", message.role === 'user' ? "justify-end" : "justify-start")}
               >
                 {message.role === 'assistant' && (
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-4 h-4 text-blue-500" />
+                  <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4 text-[#2c2825]" />
                   </div>
                 )}
                 <div
                   className={cn(
                     "max-w-[80%] rounded-2xl px-4 py-3",
                     message.role === 'user'
-                      ? "bg-blue-500 text-white"
-                      : "bg-white text-gray-900 border border-gray-200"
+                      ? "bg-[#2c2825] text-white"
+                      : "bg-white text-[#2c2825] border border-[#e8e4df]"
                   )}
                 >
                   <ReactMarkdown>{message.content}</ReactMarkdown>
                   <p
                     className={cn(
                       "text-xs mt-1",
-                      message.role === 'user' ? "text-blue-100" : "text-gray-500"
+                      message.role === 'user' ? "text-[#e8e4df]" : "text-[#6b6560]"
                     )}
                   >
                     {formatTime(message.timestamp)}
                   </p>
                 </div>
                 {message.role === 'user' && (
-                  <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4 text-gray-500" />
+                  <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-[#2c2825]" />
                   </div>
                 )}
               </motion.div>
@@ -462,14 +561,14 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 animate={{ opacity: 1, y: 0 }}
                 className="flex gap-3 justify-start"
               >
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 text-blue-500" />
+                <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-[#2c2825]" />
                 </div>
-                <div className="bg-white rounded-2xl px-4 py-3 border border-gray-200">
+                <div className="bg-white rounded-2xl px-4 py-3 border border-[#e8e4df]">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    <div className="w-2 h-2 bg-[#6b6560] rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-[#6b6560] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="w-2 h-2 bg-[#6b6560] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                   </div>
                 </div>
               </motion.div>
@@ -478,9 +577,9 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
           </div>
 
           {/* Input */}
-          <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200 bg-white">
+          <form onSubmit={handleSendMessage} className="p-4 border-t border-[#e8e4df] bg-white">
             {phase === 'trip' && !isTripInfoComplete() && currentStep !== 'welcome' && (
-              <div className="mb-2 text-xs text-gray-500">
+              <div className="mb-2 text-xs text-[#6b6560]">
                 {currentStep !== 'complete' && `Answering: ${STEP_QUESTIONS[currentStep].split('\n')[0]}`}
               </div>
             )}
@@ -505,8 +604,8 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 }
                 disabled={isLoading}
                 className={cn(
-                  "flex-1 px-4 py-3 rounded-xl border border-gray-200",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                  "flex-1 px-4 py-3 rounded-xl border border-[#e8e4df] bg-[#faf8f5] text-[#2c2825] placeholder:text-[#9c958f]",
+                  "focus:outline-none focus:ring-2 focus:ring-[#2c2825] focus:border-[#2c2825]",
                   "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
               />
@@ -514,8 +613,8 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 type="submit"
                 disabled={!inputValue.trim() || isLoading}
                 className={cn(
-                  "px-4 py-3 bg-blue-500 text-white rounded-xl",
-                  "hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed",
+                  "px-4 py-3 bg-[#2c2825] text-white rounded-xl",
+                  "hover:bg-[#4a4541] disabled:opacity-50 disabled:cursor-not-allowed",
                   "transition-colors duration-200 flex items-center justify-center"
                 )}
               >

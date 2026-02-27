@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { mbaEngine } from '@/lib/mba/engine';
+import { formatPriceInMRU } from '@/lib/currency';
 import { Users, TrendingUp, DollarSign, Star, Target, BarChart3 } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, RadialBarChart, RadialBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
@@ -194,7 +195,7 @@ export function CustomerSegmentAnalysis() {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="text-center p-3 bg-green-50 rounded-lg">
                 <p className="text-sm text-green-600 font-medium">Avg Spend</p>
-                <p className="text-lg font-bold text-green-900">Rs {segment.avgSpend.toLocaleString()}</p>
+                <p className="text-lg font-bold text-green-900">{formatPriceInMRU(segment.avgSpend)}</p>
               </div>
               <div className="text-center p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-600 font-medium">Rules</p>
@@ -237,7 +238,7 @@ export function CustomerSegmentAnalysis() {
                 This segment shows strong preference for{' '}
                 <strong>{segment.characteristics[0].replace('-', ' ')}</strong> experiences
                 with <strong>{(segment.satisfaction * 100).toFixed(0)}%</strong> satisfaction rate.
-                Average transaction value is <strong>Rs {segment.avgSpend.toLocaleString()}</strong>.
+                Average transaction value is <strong>{formatPriceInMRU(segment.avgSpend)}</strong>.
               </p>
             </div>
           </div>
@@ -269,7 +270,7 @@ export function CustomerSegmentAnalysis() {
                     </div>
                   </td>
                   <td className="py-3 px-4 text-gray-700">{segment.size}</td>
-                  <td className="py-3 px-4 text-gray-700">Rs {segment.avgSpend.toLocaleString()}</td>
+                  <td className="py-3 px-4 text-gray-700">{formatPriceInMRU(segment.avgSpend)}</td>
                   <td className="py-3 px-4">
                     <span className="text-green-600 font-medium">
                       +{(segment.growth * 100).toFixed(0)}%

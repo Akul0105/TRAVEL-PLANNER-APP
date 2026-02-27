@@ -113,8 +113,26 @@ export interface Profile {
   avatar_url: string | null;
   travel_style: string | null;
   budget_preference: string | null;
+  activities_liked?: string[];
+  food_preferences?: string[];
+  bucket_list?: string[];
   created_at: string;
   updated_at: string;
+}
+
+// Chat persistence
+export interface ChatSession {
+  id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface ChatMessageRow {
+  id: string;
+  session_id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  created_at: string;
 }
 
 // Visited destination (scrapbook)
@@ -135,10 +153,23 @@ export interface UserBundle {
   bundle_data: {
     items: Array<{ id: string; name: string; category: string; price: number }>;
     confidence?: number;
+    support?: number;
     lift?: number;
     ruleSummary?: string;
   };
   source: string;
+  created_at: string;
+}
+
+// LLM-generated suggested travel package
+export interface SuggestedPackage {
+  id: string;
+  user_id: string;
+  destination: string;
+  hotel: string;
+  activities: string[];
+  why_recommended: string | null;
+  mba_summary: string | null;
   created_at: string;
 }
 

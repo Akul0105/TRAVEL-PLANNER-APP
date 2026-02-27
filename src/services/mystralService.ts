@@ -29,13 +29,20 @@ WHAT TO GATHER (we use this for personalized bundles):
 
 When they share preferences, briefly confirm and suggest related ideas or ask one more short question. Never write long lists or act as a booking agent.`;
 
+export type ProfileContext = {
+  activities_liked?: string[];
+  food_preferences?: string[];
+  bucket_list?: string[];
+};
+
 /**
- * Build dynamic conversation context based on conversation history and trip info
+ * Build dynamic conversation context based on conversation history, trip info, and profile/scrapbook
  * @param messages - Array of chat messages
  * @param tripInfo - Collected trip information
+ * @param profileContext - Optional profile/scrapbook (activities, food, bucket list) for richer replies
  * @returns Dynamic system prompt with conversation context
  */
-function buildConversationContext(messages: ChatMessage[], tripInfo?: TripInfo): string {
+function buildConversationContext(messages: ChatMessage[], tripInfo?: TripInfo, profileContext?: ProfileContext): string {
   let contextPrompt = TRAVEL_AGENT_SYSTEM_PROMPT;
   
   // Extract key information from conversation history
@@ -116,23 +123,35 @@ function buildConversationContext(messages: ChatMessage[], tripInfo?: TripInfo):
     }
   }
 
+  // Add profile/scrapbook context (from Scrapbook page) for smoother, more personalized replies
+  if (profileContext) {
+    const scrap: string[] = [];
+    if (profileContext.activities_liked?.length) scrap.push(`Activities they like (from scrapbook): ${profileContext.activities_liked.join(', ')}`);
+    if (profileContext.food_preferences?.length) scrap.push(`Food they like (from scrapbook): ${profileContext.food_preferences.join(', ')}`);
+    if (profileContext.bucket_list?.length) scrap.push(`Places they want to visit / bucket list: ${profileContext.bucket_list.join(', ')}`);
+    if (scrap.length > 0) {
+      contextPrompt += `\n\nSCRAPBOOK / PROFILE (use to tailor suggestions and ask follow-ups):\n${scrap.join('\n')}`;
+    }
+  }
+
   return contextPrompt;
 }
 
 /**
- * Send a chat message to the Google Gemini API
+ * Send a chat message to the Mistral API
  * @param messages - Array of chat messages including conversation history
  * @param tripInfo - Optional trip information collected from user
+ * @param profileContext - Optional profile/scrapbook (activities, food, bucket list)
  * @returns Promise with the AI response
  */
-export async function sendChatMessage(messages: ChatMessage[], tripInfo?: TripInfo): Promise<string> {
+export async function sendChatMessage(messages: ChatMessage[], tripInfo?: TripInfo, profileContext?: ProfileContext): Promise<string> {
   const apiKey = MISTRAL_API_KEY;
   if (!apiKey) {
     console.error('Missing MISTRAL_API_KEY in environment');
     return "I'm not configured yet. Please add MISTRAL_API_KEY to your .env.local and try again.";
   }
 
-  const systemContent = buildConversationContext(messages, tripInfo);
+  const systemContent = buildConversationContext(messages, tripInfo, profileContext);
   const mistralMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
     { role: 'system', content: systemContent },
   ];
@@ -172,6 +191,123 @@ export async function sendChatMessage(messages: ChatMessage[], tripInfo?: TripIn
   } catch (err) {
     console.error('Mistral request failed:', err);
     return "I couldn't reach the server. Please try again in a moment.";
+  }
+}
+
+/** User context for LLM-generated travel package */
+export type PackageUserContext = {
+  destination?: string;
+  activities_liked?: string[];
+  food_preferences?: string[];
+  bucket_list?: string[];
+  visited_destinations?: string[];
+  budget?: string;
+  travel_style?: string;
+  duration_days?: number;
+};
+
+/** Structured output from LLM for a suggested travel package */
+export type SuggestedPackageOutput = {
+  destination: string;
+  hotel: string;
+  activities: string[];
+  whyRecommended: string;
+};
+
+/** Optional MBA rule metrics to cite in "Why recommended" (support/confidence as percentages). */
+export type MBARuleMetrics = { support: number; confidence: number; lift: number };
+
+/**
+ * Generate one suggested travel package using LLM from user context + optional MBA summary and rule metrics.
+ * Used to produce specific, readable packages (destination, hotel name, activities, why recommended).
+ */
+export async function generateTravelPackage(
+  userContext: PackageUserContext,
+  mbaSummary?: string | null,
+  mbaRuleMetrics?: MBARuleMetrics | null
+): Promise<SuggestedPackageOutput | null> {
+  const apiKey = MISTRAL_API_KEY;
+  if (!apiKey) {
+    console.error('Missing MISTRAL_API_KEY');
+    return null;
+  }
+
+  const parts: string[] = [];
+  if (userContext.destination) {
+    parts.push(`TARGET DESTINATION (required): You MUST suggest a package for this destination only: "${userContext.destination}". The "destination" field in your JSON must be this city/region (e.g. "Paris, France" or "Tokyo, Japan" depending on the target). Do not suggest any other destination.`);
+  }
+  if (userContext.activities_liked?.length) parts.push(`Activities they like: ${userContext.activities_liked.join(', ')}`);
+  if (userContext.food_preferences?.length) parts.push(`Food they like: ${userContext.food_preferences.join(', ')}`);
+  if (userContext.bucket_list?.length) parts.push(`Places they want to visit (bucket list): ${userContext.bucket_list.join(', ')}`);
+  if (userContext.visited_destinations?.length) parts.push(`Destinations they have visited: ${userContext.visited_destinations.join(', ')}`);
+  if (userContext.budget) parts.push(`Budget: ${userContext.budget}`);
+  if (userContext.travel_style) parts.push(`Travel style: ${userContext.travel_style}`);
+  if (userContext.duration_days) parts.push(`Trip duration: ${userContext.duration_days} days`);
+  if (mbaSummary) parts.push(`Market basket analysis suggests these items are often chosen together: ${mbaSummary}. Use this to ground your package (same destination/activity types).`);
+  if (mbaRuleMetrics) parts.push(`Use these real MBA metrics in whyRecommended: support ${(mbaRuleMetrics.support * 100).toFixed(1)}%, confidence ${(mbaRuleMetrics.confidence * 100).toFixed(0)}%, lift ${mbaRuleMetrics.lift.toFixed(2)}. E.g. "X% of travellers who chose similar items also selected..." with the actual support/confidence numbers.`);
+
+  const userContextBlock = parts.length > 0 ? parts.join('\n') : 'No specific preferences provided; suggest a popular, well-rounded package.';
+
+  const systemPrompt = `You are a travel package designer. Given the user's preferences and optional market basket analysis (MBA) insight, output exactly ONE suggested travel package as valid JSON only, no other text.
+
+Required JSON shape (use these exact keys):
+{
+  "destination": "Specific city or region name",
+  "hotel": "A realistic or well-known hotel/resort name suitable for that destination",
+  "activities": ["Activity 1", "Activity 2", "Activity 3"],
+  "whyRecommended": "One short paragraph (1-3 sentences) explaining why this package fits the user, e.g. 'X% of travellers who chose this destination and your activities also selected this type of hotel and these experiences.' Keep it specific and personal."
+}
+
+Rules:
+- destination: You MUST use the TARGET DESTINATION stated in the user context. Do not substitute another city (e.g. do not suggest Tokyo if the TARGET DESTINATION is Paris).
+- hotel: use a plausible, specific hotel or resort name for the TARGET DESTINATION (can be real or realistic).
+- activities: 3-5 specific activities for the TARGET DESTINATION (e.g. for Paris: "Louvre visit", "Seine cruise"; for Tokyo: "Tokyo Skytree Visit").
+- whyRecommended: reference their preferences and, if MBA was provided, mention that similar travellers often book these together. If MBA metrics (support %, confidence %, lift) were provided in the user context, use those exact numbers in whyRecommended (e.g. "Based on market basket analysis, X% of transactions support this combination, with Y% confidence.").
+Output only the JSON object, no markdown code fence.`;
+
+  const userPrompt = `User preferences and context:\n${userContextBlock}\n\nGenerate one suggested travel package as JSON.`;
+
+  try {
+    const response = await fetch(MISTRAL_CHAT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: MISTRAL_MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        max_tokens: 512,
+        temperature: 0.6,
+        response_format: { type: 'json_object' },
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('Mistral package API error:', response.status, errText);
+      return null;
+    }
+
+    const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const raw = data.choices?.[0]?.message?.content?.trim();
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const destination = typeof parsed.destination === 'string' ? parsed.destination : 'Unknown';
+    const hotel = typeof parsed.hotel === 'string' ? parsed.hotel : 'Recommended accommodation';
+    const activities = Array.isArray(parsed.activities)
+      ? (parsed.activities as unknown[]).map((a) => (typeof a === 'string' ? a : String(a)))
+      : [];
+    const whyRecommended = typeof parsed.whyRecommended === 'string' ? parsed.whyRecommended : 'Personalized based on your preferences and travel patterns.';
+
+    return { destination, hotel, activities, whyRecommended };
+  } catch (err) {
+    console.error('generateTravelPackage failed:', err);
+    return null;
   }
 }
 

@@ -1,11 +1,10 @@
 import { Metadata } from 'next';
 import { Suspense } from 'react';
-import { MBAAnalyticsDashboard } from '@/components/analytics/MBAAnalyticsDashboard';
-import { TopRulesDashboard } from '@/components/analytics/TopRulesDashboard';
+import { UserAnalyticsDashboard } from '@/components/analytics/UserAnalyticsDashboard';
 
 export const metadata: Metadata = {
   title: 'Analytics - Planify',
-  description: 'Market basket analysis and personalized bundle insights for travel planning.',
+  description: 'Your personalised MBA and travel analytics: bundles, rules, preferences, and suggested packages.',
 };
 
 export default function AnalyticsPage() {
@@ -17,20 +16,15 @@ export default function AnalyticsPage() {
             Analytics
           </h1>
           <p className="text-[#6b6560] text-lg max-w-2xl">
-            Market basket analysis and personalized bundle insights for data-driven travel planning.
+            Your personalised dashboard: market basket rules applied to your bundles, preferences, and suggested packages.
           </p>
         </div>
       </section>
 
       <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <Suspense fallback={<div className="animate-pulse h-96 bg-[#e8e4df] rounded-lg" />}>
-            <MBAAnalyticsDashboard />
-          </Suspense>
-          <Suspense fallback={<div className="animate-pulse h-96 bg-[#e8e4df] rounded-lg" />}>
-            <TopRulesDashboard />
-          </Suspense>
-        </div>
+        <Suspense fallback={<div className="animate-pulse h-96 bg-[#e8e4df] rounded-lg" />}>
+          <UserAnalyticsDashboard />
+        </Suspense>
       </div>
     </div>
   );
