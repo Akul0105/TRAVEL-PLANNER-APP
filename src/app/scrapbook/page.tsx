@@ -196,7 +196,7 @@ export default function ScrapbookPage() {
         </section>
         <div className="container mx-auto px-4 py-12">
           <div className="bg-white rounded-lg border border-[#e8e4df] p-8 text-center text-[#6b6560]">
-            Open the chat and enter your email to receive a sign-in link. Once signed in, your Scrapbook will show your destinations and MBA-recommended bundles.
+            Sign in using the button in the top right corner. Once signed in, your Scrapbook will show your destinations and MBA-recommended bundles.
           </div>
         </div>
       </div>

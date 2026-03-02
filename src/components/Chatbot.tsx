@@ -34,12 +34,8 @@ const STEP_QUESTIONS: Record<TripInfoStep, string> = {
   complete: "Thanks! I have enough to suggest personalized bundles. Check your **Scrapbook** for recommendations."
 };
 
-function isEmail(str: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(str.trim());
-}
-
 export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
-  const { user, profile, session, signInWithOtp, updateProfile } = useAuth();
+  const { user, profile, updateProfile } = useAuth();
   const [inputValue, setInputValue] = useState('');
   const [tripInfo, setTripInfo] = useState<TripInfo>({});
   const [currentStep, setCurrentStep] = useState<TripInfoStep>('welcome');
@@ -55,7 +51,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const phase = !user ? 'auth' : !profile?.full_name ? 'profile' : 'trip';
+  const phase = !user ? 'signed_out' : !profile?.full_name ? 'profile' : 'trip';
 
   const tripWelcomeMessage: ChatMessage = {
     id: 'welcome',
@@ -67,7 +63,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
   useEffect(() => {
     if (!user) {
       setMessages([
-        { id: '1', role: 'assistant', content: "Hey! I'm your travel planning assistant. 🧳\n\nTo get started, **enter your email** and we'll send you a sign-in link. After you sign in, we can chat and I'll create personalized travel bundles for you.", timestamp: new Date() },
+        { id: '1', role: 'assistant', content: "Hey! I'm your travel planning assistant. 🧳\n\n**Sign in** using the **button in the top right corner** of the page to chat and get personalized travel bundles.", timestamp: new Date() },
       ]);
       profilePromptSent.current = false;
       tripWelcomeSent.current = false;
@@ -78,13 +74,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
     if (!profile?.full_name) {
       if (!profilePromptSent.current) {
         profilePromptSent.current = true;
-        setMessages((prev) => {
-          const hasEmailFlow = prev.some((m) => m.content.includes('sign-in link') || m.content.includes('Check your email'));
-          if (hasEmailFlow) {
-            return [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "You're signed in! What's your **full name**?", timestamp: new Date() }];
-          }
-          return [{ id: '1', role: 'assistant', content: "You're signed in! What's your **full name**?", timestamp: new Date() }];
-        });
+        setMessages([{ id: '1', role: 'assistant', content: "You're signed in! What's your **full name**?", timestamp: new Date() }]);
         setProfileStep('name');
       }
       setCurrentSessionId(null);
@@ -233,23 +223,8 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
       }
 
     try {
-      // --- Auth phase: collect email and sign-in link
-      if (phase === 'auth') {
-        if (!isEmail(userInput)) {
-          setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "Please enter a valid email address.", timestamp: new Date() }]);
-          setIsLoading(false);
-          return;
-        }
-        const { error } = await signInWithOtp(userInput);
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: error
-            ? "We couldn't send the sign-in link. Please try again or use another email."
-            : "We've sent you a **sign-in link** to your email. Click the link to sign in, then return here and refresh or continue chatting.",
-          timestamp: new Date(),
-        };
-        setMessages(prev => [...prev, assistantMessage]);
+      // --- Signed out: no input accepted; user must sign in from top right
+      if (phase === 'signed_out') {
         setIsLoading(false);
         return;
       }
@@ -424,7 +399,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
     setCurrentStep('welcome');
     setProfileStep('name');
     if (!user) {
-      setMessages([{ id: '1', role: 'assistant', content: "Enter your **email** to get started and we'll send you a sign-in link.", timestamp: new Date() }]);
+      setMessages([{ id: '1', role: 'assistant', content: "**Sign in** using the **button in the top right corner** to chat and get personalized travel bundles.", timestamp: new Date() }]);
     } else if (!profile?.full_name) {
       setMessages([{ id: '1', role: 'assistant', content: "What's your **full name**?", timestamp: new Date() }]);
       setProfileStep('name');
@@ -475,7 +450,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
               <div>
                 <h3 className="font-[family-name:var(--font-playfair)] text-white font-semibold">Travel Agent</h3>
                 <p className="text-[#e8e4df] text-xs">
-                  {phase === 'auth' ? 'Sign in' : phase === 'profile' ? 'Profile' : isTripInfoComplete() ? 'Ready to plan!' : 'Collecting info...'}
+                  {phase === 'signed_out' ? 'Sign in to chat' : phase === 'profile' ? 'Profile' : isTripInfoComplete() ? 'Ready to plan!' : 'Collecting info...'}
                 </p>
               </div>
             </div>
@@ -589,9 +564,10 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
+                disabled={phase === 'signed_out'}
                 placeholder={
-                  phase === 'auth'
-                    ? "Your email address..."
+                  phase === 'signed_out'
+                    ? "Sign in (button in top right) to chat..."
                     : phase === 'profile'
                     ? profileStep === 'name'
                       ? "Your full name..."
@@ -611,7 +587,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
               />
               <button
                 type="submit"
-                disabled={!inputValue.trim() || isLoading}
+                disabled={phase === 'signed_out' || !inputValue.trim() || isLoading}
                 className={cn(
                   "px-4 py-3 bg-[#2c2825] text-white rounded-xl",
                   "hover:bg-[#4a4541] disabled:opacity-50 disabled:cursor-not-allowed",
