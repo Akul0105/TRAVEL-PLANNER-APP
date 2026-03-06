@@ -1,8 +1,7 @@
 'use client';
 
 import { HeroSection } from '@/components/HeroSection';
-import { PopularDestinations } from '@/components/PopularDestinations';
-import { UserDetailsForm } from '@/components/UserDetailsForm';
+import { DestinationCatalog } from '@/components/DestinationCatalog';
 import { Footer } from '@/components/layout/Footer';
 import { useSearch } from '@/hooks/useSearch';
 import { SearchSuggestion } from '@/types';
@@ -14,7 +13,6 @@ export default function Home() {
     isLoading: isSearchLoading,
     showSuggestions,
     updateQuery,
-    performSearch,
     handleSuggestionClick: onSuggestionClick,
   } = useSearch();
 
@@ -30,8 +28,7 @@ export default function Home() {
         showSuggestions={showSuggestions}
         onSuggestionClick={(suggestion: SearchSuggestion) => onSuggestionClick(suggestion)}
       />
-      <PopularDestinations />
-      <UserDetailsForm />
+      <DestinationCatalog />
       <Footer />
     </>
   );

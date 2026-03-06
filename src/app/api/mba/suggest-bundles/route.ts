@@ -43,10 +43,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const tripInfo = (body?.tripInfo ?? {}) as { destination?: string; travelStyle?: string };
 
-    // Fetch profile (activities_liked, food_preferences, bucket_list) and visited_destinations
-    const [profileRes, visitedRes] = await Promise.all([
+    // Fetch profile, visited_destinations, and catalog feedback (likes/clicks for bundle personalization)
+    const [profileRes, visitedRes, feedbackRes] = await Promise.all([
       supabase.from('profiles').select('activities_liked, food_preferences, bucket_list, travel_style').eq('id', user.id).single(),
       supabase.from('visited_destinations').select('destination_name').eq('user_id', user.id),
+      supabase.from('catalog_feedback').select('item_id, item_type, action').eq('user_id', user.id),
     ]);
 
     const contextItems: MBAItem[] = [];
@@ -77,6 +78,11 @@ export async function POST(request: NextRequest) {
     const visited = (visitedRes?.data ?? []) as { destination_name: string }[];
     collectContextItems(visited.map((v) => v.destination_name), seen, contextItems);
 
+    // 4. Catalog likes (from home page browse) – strengthen context for bundle suggestions
+    const feedback = (feedbackRes?.data ?? []) as { item_id: string; item_type: string; action: string }[];
+    const likedIds = feedback.filter((f) => f.action === 'like').map((f) => f.item_id);
+    collectContextItems(likedIds, seen, contextItems);
+
     let bundleArrays = mbaEngine.getBundleRecommendations(contextItems);
     if (bundleArrays.length === 0) {
       const topRules = mbaEngine.getTopRules(3);
@@ -86,11 +92,11 @@ export async function POST(request: NextRequest) {
         .filter((items) => items.length > 0);
     }
 
-    // Allowed destinations: only show bundles that contain destinations the user wants (bucket list) or has visited
+    // Allowed destinations: bucket list, visited, or catalog likes
     const bucket = Array.isArray(profile?.bucket_list) ? (profile.bucket_list as string[]).filter(Boolean) : [];
     const visitedNames = (visited as { destination_name: string }[]).map((v) => v.destination_name).filter(Boolean);
     const allowedDestKeys = new Set<string>();
-    for (const name of [...bucket, ...visitedNames]) {
+    for (const name of [...bucket, ...visitedNames, ...likedIds]) {
       const key = name.toLowerCase().trim();
       if (key) allowedDestKeys.add(key);
       const item = mbaEngine.getItemByIdOrName(name);

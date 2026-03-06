@@ -18,7 +18,6 @@ export function Navigation() {
   const navigation = [
     { name: 'Home', href: '/' },
     { name: 'Scrapbook', href: '/scrapbook' },
-    { name: 'Analytics', href: '/analytics' },
   ];
 
   const isActive = (href: string) => {

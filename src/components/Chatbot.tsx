@@ -4,84 +4,39 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Trash2, Minimize2, Maximize2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import { ChatbotProps, ChatMessage, TripInfo, TripInfoStep } from '@/types';
+import { ChatbotProps, ChatMessage } from '@/types';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import type { ChatMessageRow } from '@/lib/supabase';
 
-const TRIP_INFO_STEPS: TripInfoStep[] = [
-  'welcome',
-  'destination',
-  'pastDestinations',
-  'restaurantType',
-  'activities',
-  'placesVisited',
-  'budget',
-  'travelStyle',
-  'complete'
-];
-
-const STEP_QUESTIONS: Record<TripInfoStep, string> = {
-  welcome: "I'll ask a few questions about your preferences and past travel so we can suggest **personalized bundles** for you (using market basket analysis).",
-  destination: "Which **destination** are you interested in right now? (e.g. Paris, Mauritius, Tokyo)",
-  pastDestinations: "Which **destinations have you already visited**? (e.g. London, Bali, Dubai – list a few)",
-  restaurantType: "What **type of restaurants** do you enjoy? (e.g. local, fine dining, street food, casual)",
-  activities: "What **activities** do you like when you travel? (e.g. beaches, museums, hiking, food tours, nightlife)",
-  placesVisited: "Any **places or attractions** you've loved? (e.g. a specific museum, beach, or city area)",
-  budget: "What's your usual **budget style**? (budget-friendly, mid-range, or luxury)",
-  travelStyle: "What's your **travel style**? (Adventure, Relaxation, Cultural, Business, Family, Luxury, or Budget)",
-  complete: "Thanks! I have enough to suggest personalized bundles. Check your **Scrapbook** for recommendations."
+const CHAT_WELCOME: ChatMessage = {
+  id: 'welcome',
+  role: 'assistant',
+  content: "Hi! I'm here to help you **browse the catalog** and use Planify. Use **like** / **dislike** on destinations on the home page to improve your bundle suggestions. Ask me anything about destinations, the **Scrapbook**, or how **market basket analysis** works!",
+  timestamp: new Date(),
 };
 
 export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
-  const { user, profile, updateProfile } = useAuth();
+  const { user } = useAuth();
   const [inputValue, setInputValue] = useState('');
-  const [tripInfo, setTripInfo] = useState<TripInfo>({});
-  const [currentStep, setCurrentStep] = useState<TripInfoStep>('welcome');
-  const [profileStep, setProfileStep] = useState<'name' | 'address'>('name');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
-  const profilePromptSent = useRef(false);
-  const tripWelcomeSent = useRef(false);
   const sessionLoaded = useRef(false);
-  const skipNextWelcomeSet = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const phase = !user ? 'signed_out' : !profile?.full_name ? 'profile' : 'trip';
-
-  const tripWelcomeMessage: ChatMessage = {
-    id: 'welcome',
-    role: 'assistant',
-    content: "Would you like to **share your preferences** (destinations, restaurants, activities) so I can suggest personalized bundles? Type **yes** or **start**.",
-    timestamp: new Date(),
-  };
-
   useEffect(() => {
     if (!user) {
       setMessages([
-        { id: '1', role: 'assistant', content: "Hey! I'm your travel planning assistant. 🧳\n\n**Sign in** using the **button in the top right corner** of the page to chat and get personalized travel bundles.", timestamp: new Date() },
+        { id: '1', role: 'assistant', content: "Hey! I'm your travel assistant. 🧳\n\n**Sign in** using the **button in the top right corner** to chat and get help browsing the catalog and your bundles.", timestamp: new Date() },
       ]);
-      profilePromptSent.current = false;
-      tripWelcomeSent.current = false;
       sessionLoaded.current = false;
       setCurrentSessionId(null);
       return;
     }
-    if (!profile?.full_name) {
-      if (!profilePromptSent.current) {
-        profilePromptSent.current = true;
-        setMessages([{ id: '1', role: 'assistant', content: "You're signed in! What's your **full name**?", timestamp: new Date() }]);
-        setProfileStep('name');
-      }
-      setCurrentSessionId(null);
-      return;
-    }
-    profilePromptSent.current = false;
-    // Trip phase: restore persisted chat or show welcome
     if (sessionLoaded.current) return;
     sessionLoaded.current = true;
     (async () => {
@@ -93,11 +48,8 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
         .limit(1);
       const session = sessions?.[0];
       if (!session) {
-        tripWelcomeSent.current = true;
-        if (!skipNextWelcomeSet.current) setMessages([tripWelcomeMessage]);
-        skipNextWelcomeSet.current = false;
+        setMessages([CHAT_WELCOME]);
         setCurrentSessionId(null);
-        setCurrentStep('welcome');
         return;
       }
       const { data: rows } = await supabase
@@ -114,16 +66,12 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
           timestamp: new Date(m.created_at),
         })));
         setCurrentSessionId(session.id);
-        tripWelcomeSent.current = true;
       } else {
-        tripWelcomeSent.current = true;
-        if (!skipNextWelcomeSet.current) setMessages([tripWelcomeMessage]);
-        skipNextWelcomeSet.current = false;
+        setMessages([CHAT_WELCOME]);
         setCurrentSessionId(session.id);
       }
-      setCurrentStep('welcome');
     })();
-  }, [user?.id, profile?.full_name]);
+  }, [user?.id]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -133,54 +81,6 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
     if (isOpen && inputRef.current) inputRef.current.focus();
   }, [isOpen]);
 
-  // Enough preferences for MBA-based bundles
-  const isTripInfoComplete = (): boolean => {
-    return !!(tripInfo.destination && (tripInfo.pastDestinations?.length || tripInfo.restaurantPreferences || tripInfo.activityPreferences?.length || tripInfo.budget || tripInfo.travelStyle));
-  };
-
-  // Extract preferences from user message
-  const extractTripInfo = (message: string, step: TripInfoStep): Partial<TripInfo> => {
-    const lowerMessage = message.toLowerCase();
-    const info: Partial<TripInfo> = {};
-
-    switch (step) {
-      case 'destination':
-        info.destination = message.trim();
-        break;
-      case 'pastDestinations':
-        info.pastDestinations = message.split(/[,;]/).map(s => s.trim()).filter(Boolean);
-        break;
-      case 'restaurantType':
-        info.restaurantPreferences = message.trim();
-        break;
-      case 'activities':
-        info.activityPreferences = message.split(/[,;]/).map(s => s.trim()).filter(Boolean);
-        break;
-      case 'placesVisited':
-        info.placesVisited = message.split(/[,;]/).map(s => s.trim()).filter(Boolean);
-        break;
-      case 'budget':
-        info.budget = message.trim();
-        break;
-      case 'travelStyle':
-        const styles = ['adventure', 'relaxation', 'cultural', 'business', 'family', 'luxury', 'budget'];
-        const foundStyle = styles.find(style => lowerMessage.includes(style));
-        if (foundStyle) info.travelStyle = foundStyle as TripInfo['travelStyle'];
-        break;
-    }
-    return info;
-  };
-
-  // Get next step based on current step
-  const getNextStep = (current: TripInfoStep): TripInfoStep => {
-    const currentIndex = TRIP_INFO_STEPS.indexOf(current);
-    if (currentIndex < TRIP_INFO_STEPS.length - 1) {
-      return TRIP_INFO_STEPS[currentIndex + 1];
-    }
-    return 'complete';
-  };
-
-  // Handle user message and progress through steps
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() || isLoading) return;
@@ -194,12 +94,13 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
 
     const userInput = inputValue.trim();
     setInputValue('');
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
 
     const persistMessage = async (sessionId: string, role: 'user' | 'assistant', content: string) => {
       await supabase.from('chat_messages').insert({ session_id: sessionId, role, content });
     };
+
     const ensureSession = async (): Promise<string | null> => {
       if (currentSessionId) return currentSessionId;
       if (!user?.id) return null;
@@ -209,222 +110,70 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
         .select('id')
         .single();
       if (!error && row?.id) {
-        skipNextWelcomeSet.current = true;
         setCurrentSessionId(row.id);
         return row.id;
       }
       return null;
     };
 
-    let chatSessionId: string | null = null;
-      if (phase === 'trip' && user) {
-        chatSessionId = await ensureSession();
-        if (chatSessionId) await persistMessage(chatSessionId, 'user', userInput);
-      }
+    if (phase === 'signed_out') {
+      setIsLoading(false);
+      return;
+    }
+
+    let chatSessionId: string | null = await ensureSession();
+    if (chatSessionId) await persistMessage(chatSessionId, 'user', userInput);
 
     try {
-      // --- Signed out: no input accepted; user must sign in from top right
-      if (phase === 'signed_out') {
-        setIsLoading(false);
-        return;
-      }
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+          tripInfo: {},
+          profileContext: undefined,
+        }),
+      });
 
-      // --- Profile phase: collect name then address
-      if (phase === 'profile') {
-        if (profileStep === 'name') {
-          await updateProfile({ full_name: userInput });
-          setProfileStep('address');
-          setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "Thanks! What's your **address**? (You can type 'skip' if you prefer not to share.)", timestamp: new Date() }]);
-          setIsLoading(false);
-          return;
-        }
-        if (profileStep === 'address') {
-          if (!userInput.toLowerCase().includes('skip')) await updateProfile({ address: userInput });
-          setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: "All set! Would you like to **share your preferences** so I can suggest personalized bundles? Type **yes** or **start** and I'll ask about destinations, restaurants, activities and more.", timestamp: new Date() }]);
-          setCurrentStep('welcome');
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // If user wants to start planning, begin the information collection
-      if (phase === 'trip' && currentStep === 'welcome' && (userInput.toLowerCase().includes('yes') || userInput.toLowerCase().includes('start') || userInput.toLowerCase().includes('plan'))) {
-        const nextStep = getNextStep('welcome');
-        setCurrentStep(nextStep);
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: STEP_QUESTIONS[nextStep],
-          timestamp: new Date(),
-        };
-        if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsLoading(false);
-        return;
-      }
-
-      // If we're still collecting information (trip phase only)
-      if (phase === 'trip' && currentStep !== 'complete' && currentStep !== 'welcome') {
-        // Extract information from user's message
-        const extractedInfo = extractTripInfo(userInput, currentStep);
-        const updatedTripInfo = { ...tripInfo, ...extractedInfo };
-        setTripInfo(updatedTripInfo);
-
-        // Move to next step
-        const nextStep = getNextStep(currentStep);
-        setCurrentStep(nextStep);
-
-        // If we've completed all steps: save MBA bundles and tell user to check Scrapbook
-        if (nextStep === 'complete' || isTripInfoComplete()) {
-          let scrapbookNote = '';
-          try {
-            const { data: { session: currentSession } } = await supabase.auth.getSession();
-            const token = currentSession?.access_token;
-            if (token && updatedTripInfo.destination) {
-              const [bundlesRes, packageRes] = await Promise.all([
-                fetch('/api/mba/suggest-bundles', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                  body: JSON.stringify({ tripInfo: updatedTripInfo }),
-                }),
-                fetch('/api/packages/suggest', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                  body: JSON.stringify({
-                    tripInfo: {
-                      destination: updatedTripInfo.destination,
-                      budget: updatedTripInfo.budget,
-                      travelStyle: updatedTripInfo.travelStyle,
-                    },
-                  }),
-                }),
-              ]);
-              const bundlesData = await bundlesRes.json();
-              const packageData = await packageRes.json();
-              if (bundlesData?.success && bundlesData?.count > 0) {
-                scrapbookNote = `\n\nI've added **${bundlesData.count} personalized bundle(s)** to your **Scrapbook** (market basket analysis).`;
-              }
-              if (packageData?.success && packageData?.package) {
-                scrapbookNote += `\n\nI've also created a **suggested travel package** for you (destination, hotel, activities, and why it fits you). Check the **Scrapbook** page to see everything!`;
-              } else if (!scrapbookNote && (bundlesData?.error || packageData?.error)) {
-                scrapbookNote = `\n\n(Saving to Scrapbook failed. You can try again from the Scrapbook page.)`;
-              }
-            }
-          } catch { /* ignore */ }
-          const assistantMessage: ChatMessage = {
-            id: (Date.now() + 1).toString(),
-            role: 'assistant',
-            content: STEP_QUESTIONS['complete'] + scrapbookNote + '\n\nWhat would you like to know next?',
-            timestamp: new Date(),
-          };
-          if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
-          setMessages(prev => [...prev, assistantMessage]);
-          setIsLoading(false);
-          return;
-        }
-
-        // Ask next question
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: `Got it! 👍\n\n${STEP_QUESTIONS[nextStep]}`,
-          timestamp: new Date(),
-        };
-        if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
-        setMessages(prev => [...prev, assistantMessage]);
-        setIsLoading(false);
-        return;
-      }
-
-      // If trip info is complete, allow normal chat with API (trip phase only)
-      if (phase === 'trip' && (isTripInfoComplete() || currentStep === 'complete')) {
-        const profileContext = profile ? {
-          activities_liked: (profile.activities_liked ?? []).slice(0, 10),
-          food_preferences: (profile.food_preferences ?? []).slice(0, 10),
-          bucket_list: (profile.bucket_list ?? []).slice(0, 10),
-        } : undefined;
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            messages: [...messages, userMessage],
-            tripInfo: tripInfo,
-            profileContext,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Server error: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: data.response || "Hmm... I didn't quite get that. Could you ask differently?",
-          timestamp: new Date(),
-        };
-        if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
-        setMessages(prev => [...prev, assistantMessage]);
-      } else if (phase === 'trip') {
-        // Still collecting info - guide user back
-        const assistantMessage: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: "I still need a bit more information to plan your trip perfectly! Let me continue asking questions.\n\n" + STEP_QUESTIONS[currentStep],
-          timestamp: new Date(),
-        };
-        if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
-        setMessages(prev => [...prev, assistantMessage]);
-      }
+      if (!response.ok) throw new Error(`Server error: ${response.status}`);
+      const data = await response.json();
+      const assistantMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: data.response || "I didn't quite get that. Try asking about the catalog, Scrapbook, or how bundles work!",
+        timestamp: new Date(),
+      };
+      if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error('Chat error:', error);
-      setMessages(prev => [
+      setMessages((prev) => [
         ...prev,
         {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: "⚠️ I apologize, but I'm having trouble connecting to our travel system. Please try again later!",
+          content: "I'm having trouble connecting. Please try again later!",
           timestamp: new Date(),
-        }
+        },
       ]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const phase = !user ? 'signed_out' : 'chat';
+
   const clearMessages = () => {
     setCurrentSessionId(null);
-    setTripInfo({});
-    setCurrentStep('welcome');
-    setProfileStep('name');
     if (!user) {
-      setMessages([{ id: '1', role: 'assistant', content: "**Sign in** using the **button in the top right corner** to chat and get personalized travel bundles.", timestamp: new Date() }]);
-    } else if (!profile?.full_name) {
-      setMessages([{ id: '1', role: 'assistant', content: "What's your **full name**?", timestamp: new Date() }]);
-      setProfileStep('name');
+      setMessages([{ id: '1', role: 'assistant', content: "**Sign in** using the **button in the top right corner** to chat.", timestamp: new Date() }]);
     } else {
-      setMessages([tripWelcomeMessage]);
+      setMessages([CHAT_WELCOME]);
     }
   };
 
   const formatTime = (timestamp: Date) =>
     timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
-  const progressPercentage = () => {
-    const steps = TRIP_INFO_STEPS.filter(s => s !== 'welcome' && s !== 'complete');
-    const done = steps.filter(s => {
-      if (s === 'destination') return !!tripInfo.destination;
-      if (s === 'pastDestinations') return !!tripInfo.pastDestinations?.length;
-      if (s === 'restaurantType') return !!tripInfo.restaurantPreferences;
-      if (s === 'activities') return !!tripInfo.activityPreferences?.length;
-      if (s === 'placesVisited') return !!tripInfo.placesVisited?.length;
-      if (s === 'budget') return !!tripInfo.budget;
-      if (s === 'travelStyle') return !!tripInfo.travelStyle;
-      return false;
-    });
-    return (done.length / steps.length) * 100;
-  };
 
   return (
     <AnimatePresence>
@@ -435,70 +184,40 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
           exit={{ opacity: 0, scale: 0.8, y: 20 }}
           transition={{ duration: 0.3 }}
           className={cn(
-            "fixed bottom-24 right-6 bg-[#faf8f5] rounded-2xl shadow-2xl border border-[#e8e4df] z-50 flex flex-col",
-            isExpanded
-              ? "w-screen h-screen bottom-0 right-0 rounded-none"
-              : "w-96 h-[600px]"
+            'fixed bottom-24 right-6 bg-[#faf8f5] rounded-2xl shadow-2xl border border-[#e8e4df] z-50 flex flex-col',
+            isExpanded ? 'w-screen h-screen bottom-0 right-0 rounded-none' : 'w-96 h-[600px]'
           )}
         >
-          {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-[#e8e4df] bg-[#2c2825] rounded-t-2xl">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center">
                 <Bot className="w-5 h-5 text-[#2c2825]" />
               </div>
               <div>
-                <h3 className="font-[family-name:var(--font-playfair)] text-white font-semibold">Travel Agent</h3>
+                <h3 className="font-semibold text-white">Travel Assistant</h3>
                 <p className="text-[#e8e4df] text-xs">
-                  {phase === 'signed_out' ? 'Sign in to chat' : phase === 'profile' ? 'Profile' : isTripInfoComplete() ? 'Ready to plan!' : 'Collecting info...'}
+                  {phase === 'signed_out' ? 'Sign in to chat' : 'Browse & bundles'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={clearMessages}
-                className="p-1 text-[#e8e4df] hover:bg-white/10 rounded-lg"
-                title="Clear chat"
-              >
+              <button onClick={clearMessages} className="p-1 text-[#e8e4df] hover:bg-white/10 rounded-lg" title="Clear chat">
                 <Trash2 className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => setIsExpanded(prev => !prev)}
-                className="p-1 text-[#e8e4df] hover:bg-white/10 rounded-lg"
-                title={isExpanded ? "Exit Fullscreen" : "Go Fullscreen"}
-              >
+              <button onClick={() => setIsExpanded((prev) => !prev)} className="p-1 text-[#e8e4df] hover:bg-white/10 rounded-lg" title={isExpanded ? 'Exit fullscreen' : 'Fullscreen'}>
                 {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
-          {/* Progress Bar */}
-          {phase === 'trip' && !isTripInfoComplete() && currentStep !== 'welcome' && (
-            <div className="px-4 pt-3 pb-2 bg-white border-b border-[#e8e4df]">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-[#6b6560]">Trip information</span>
-                <span className="text-xs font-medium text-[#2c2825]">{Math.round(progressPercentage())}%</span>
-              </div>
-              <div className="w-full bg-[#e8e4df] rounded-full h-2">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercentage()}%` }}
-                  transition={{ duration: 0.3 }}
-                  className="bg-[#2c2825] h-2 rounded-full"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#faf8f5]">
             {messages.map((message) => (
               <motion.div
                 key={message.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-                className={cn("flex gap-3", message.role === 'user' ? "justify-end" : "justify-start")}
+                transition={{ duration: 0.2 }}
+                className={cn('flex gap-3', message.role === 'user' ? 'justify-end' : 'justify-start')}
               >
                 {message.role === 'assistant' && (
                   <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center flex-shrink-0">
@@ -507,19 +226,12 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 )}
                 <div
                   className={cn(
-                    "max-w-[80%] rounded-2xl px-4 py-3",
-                    message.role === 'user'
-                      ? "bg-[#2c2825] text-white"
-                      : "bg-white text-[#2c2825] border border-[#e8e4df]"
+                    'max-w-[80%] rounded-2xl px-4 py-3',
+                    message.role === 'user' ? 'bg-[#2c2825] text-white' : 'bg-white text-[#2c2825] border border-[#e8e4df]'
                   )}
                 >
                   <ReactMarkdown>{message.content}</ReactMarkdown>
-                  <p
-                    className={cn(
-                      "text-xs mt-1",
-                      message.role === 'user' ? "text-[#e8e4df]" : "text-[#6b6560]"
-                    )}
-                  >
+                  <p className={cn('text-xs mt-1', message.role === 'user' ? 'text-[#e8e4df]' : 'text-[#6b6560]')}>
                     {formatTime(message.timestamp)}
                   </p>
                 </div>
@@ -531,11 +243,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
               </motion.div>
             ))}
             {isLoading && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex gap-3 justify-start"
-              >
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 justify-start">
                 <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center flex-shrink-0">
                   <Bot className="w-4 h-4 text-[#2c2825]" />
                 </div>
@@ -551,47 +259,26 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Input */}
           <form onSubmit={handleSendMessage} className="p-4 border-t border-[#e8e4df] bg-white">
-            {phase === 'trip' && !isTripInfoComplete() && currentStep !== 'welcome' && (
-              <div className="mb-2 text-xs text-[#6b6560]">
-                {currentStep !== 'complete' && `Answering: ${STEP_QUESTIONS[currentStep].split('\n')[0]}`}
-              </div>
-            )}
             <div className="flex gap-2">
               <input
                 ref={inputRef}
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                disabled={phase === 'signed_out'}
-                placeholder={
-                  phase === 'signed_out'
-                    ? "Sign in (button in top right) to chat..."
-                    : phase === 'profile'
-                    ? profileStep === 'name'
-                      ? "Your full name..."
-                      : "Your address or 'skip'..."
-                    : isTripInfoComplete()
-                    ? "Ask about your trip, packages, or travel advice..."
-                    : currentStep === 'welcome'
-                    ? "Type 'yes' or 'start' to begin..."
-                    : "Type your answer..."
-                }
-                disabled={isLoading}
+                disabled={phase === 'signed_out' || isLoading}
+                placeholder={phase === 'signed_out' ? 'Sign in to chat...' : 'Ask about the catalog, Scrapbook, or MBA...'}
                 className={cn(
-                  "flex-1 px-4 py-3 rounded-xl border border-[#e8e4df] bg-[#faf8f5] text-[#2c2825] placeholder:text-[#9c958f]",
-                  "focus:outline-none focus:ring-2 focus:ring-[#2c2825] focus:border-[#2c2825]",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                  'flex-1 px-4 py-3 rounded-xl border border-[#e8e4df] bg-[#faf8f5] text-[#2c2825] placeholder:text-[#9c958f]',
+                  'focus:outline-none focus:ring-2 focus:ring-[#2c2825] focus:border-[#2c2825]',
+                  'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
               />
               <button
                 type="submit"
                 disabled={phase === 'signed_out' || !inputValue.trim() || isLoading}
                 className={cn(
-                  "px-4 py-3 bg-[#2c2825] text-white rounded-xl",
-                  "hover:bg-[#4a4541] disabled:opacity-50 disabled:cursor-not-allowed",
-                  "transition-colors duration-200 flex items-center justify-center"
+                  'px-4 py-3 bg-[#2c2825] text-white rounded-xl hover:bg-[#4a4541] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center'
                 )}
               >
                 <Send className="w-5 h-5" />

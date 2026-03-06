@@ -16,8 +16,8 @@ export function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/analytics" className="text-sm text-neutral-400 hover:text-white transition-colors">
-                  Analytics
+                <Link href="/scrapbook" className="text-sm text-neutral-400 hover:text-white transition-colors">
+                  Scrapbook
                 </Link>
               </li>
             </ul>

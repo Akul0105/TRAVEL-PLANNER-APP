@@ -3,10 +3,12 @@
  * This hook handles all chatbot-related state and API interactions
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { ChatMessage, ChatbotState } from '@/types';
 import { sendChatMessage } from '@/services/mystralService';
 import { generateId } from '@/lib/utils';
+
+const CHATBOT_AUTO_OPEN_DELAY_MS = 2500;
 
 /**
  * Custom hook for chatbot functionality
@@ -14,12 +16,25 @@ import { generateId } from '@/lib/utils';
  * @returns Object containing chatbot state and functions
  */
 export function useChatbot() {
+  const autoOpenedRef = useRef(false);
   const [state, setState] = useState<ChatbotState>({
     isOpen: false,
     messages: [],
     isLoading: false,
     error: undefined,
   });
+
+  /**
+   * Auto-open chatbot once per page load after a short delay when user enters the website
+   */
+  useEffect(() => {
+    if (typeof window === 'undefined' || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    const timer = window.setTimeout(() => {
+      setState(prev => ({ ...prev, isOpen: true }));
+    }, CHATBOT_AUTO_OPEN_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   /**
    * Toggle chatbot open/closed state
