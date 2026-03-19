@@ -11,11 +11,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Messages are required' }, { status: 400 });
     }
 
-    // 2. Use Mistral service with trip info and profile context for smoother, contextual replies
-    const aiResponse = await sendChatMessage(messages, tripInfo, profileContext);
+    // 2. Use Mistral service with trip info and profile context
+    const { text, suggestions } = await sendChatMessage(messages, tripInfo, profileContext);
 
-    // 3. Return the AI's response to the frontend
-    return NextResponse.json({ response: aiResponse });
+    // 3. Return response and optional suggestions (for "Add to bucket list" / "Add to activities")
+    return NextResponse.json({ response: text, suggestions: suggestions ?? undefined });
 
   } catch (error) {
     // This catches errors if our server fails for any reason

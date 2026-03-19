@@ -192,7 +192,7 @@ function SmallCard({
 }
 
 export function DestinationCatalog() {
-  const { user, session } = useAuth();
+  const { user, session, isAnonymous } = useAuth();
   const [feedbackMap, setFeedbackMap] = useState<Record<string, { action: string }>>({});
   const [selectedDestination, setSelectedDestination] = useState<CatalogItem | null>(null);
 
@@ -254,7 +254,12 @@ export function DestinationCatalog() {
         <p className="text-[#6b6560] max-w-2xl mb-2">
           Explore places like an art gallery. Use <strong>like</strong> / <strong>dislike</strong> to shape your bundles. Click any card to see activities, food and attractions — and like those too.
         </p>
-        {!user && (
+        {isAnonymous && (
+          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 inline-block">
+            Sign in with email to save your likes across devices and get better bundle suggestions.
+          </p>
+        )}
+        {!user && !isAnonymous && (
           <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 inline-block">
             Sign in to save your likes — they improve your Scrapbook bundle suggestions.
           </p>

@@ -83,13 +83,42 @@ export async function POST(request: NextRequest) {
     const likedIds = feedback.filter((f) => f.action === 'like').map((f) => f.item_id);
     collectContextItems(likedIds, seen, contextItems);
 
+    const contextDestinationIds = contextItems
+      .filter((i) => i.category === 'destination')
+      .map((i) => i.id);
+    const contextDestSet = new Set(contextDestinationIds.map((id) => id.toLowerCase()));
+
     let bundleArrays = mbaEngine.getBundleRecommendations(contextItems);
+
     if (bundleArrays.length === 0) {
-      const topRules = mbaEngine.getTopRules(3);
+      const rulesForLikedDestinations =
+        contextDestinationIds.length > 0
+          ? mbaEngine.getTopRulesContainingItems(contextDestinationIds, 5)
+          : [];
+      const topRules =
+        rulesForLikedDestinations.length > 0
+          ? rulesForLikedDestinations
+          : mbaEngine.getTopRules(3);
       bundleArrays = topRules
-        .slice(0, 2)
+        .slice(0, 3)
         .map((r) => [...r.antecedent, ...r.consequent])
         .filter((items) => items.length > 0);
+    }
+
+    // When user has liked/chosen destinations, only show bundles that contain at least one of them
+    if (contextDestSet.size > 0) {
+      bundleArrays = bundleArrays.filter((itemsInBundle) =>
+        itemsInBundle.some(
+          (i) => i.category === 'destination' && contextDestSet.has(i.id.toLowerCase()),
+        ),
+      );
+      // If filtering removed everything, build from rules that contain liked destinations only
+      if (bundleArrays.length === 0 && contextDestinationIds.length > 0) {
+        const rules = mbaEngine.getTopRulesContainingItems(contextDestinationIds, 5);
+        bundleArrays = rules
+          .map((r) => [...r.antecedent, ...r.consequent])
+          .filter((items) => items.length > 0);
+      }
     }
 
     // Allowed destinations: bucket list, visited, or catalog likes

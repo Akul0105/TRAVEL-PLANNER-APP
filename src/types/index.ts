@@ -3,12 +3,20 @@
  * This file contains all the type definitions used throughout the application
  */
 
+// Optional suggestions attached to an assistant message (for "Add to bucket list" / "Add to activities")
+export interface ChatSuggestions {
+  destinations: string[];
+  activities: string[];
+}
+
 // Chat message interface for the chatbot
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+  /** When present, show "Add to bucket list" / "Add to activities" for these items */
+  suggestions?: ChatSuggestions;
 }
 
 // Search suggestion interface for Google-like search functionality

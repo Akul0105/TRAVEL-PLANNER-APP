@@ -253,23 +253,26 @@ export class MBAEngine {
   }
 
   private generateSequences() {
-    // Common travel sequences
+    // Common travel sequences (include destinations so liked destination can match)
     const sequencePatterns = [
-      ['flight', 'airport-transfer', 'luxury-hotel', 'spa', 'snorkeling', 'cruise'],
-      ['flight', 'boutique-hotel', 'museum', 'cooking', 'guide'],
-      ['train', 'boutique-hotel', 'museum', 'cruise', 'photography'],
-      ['flight', 'resort', 'hiking', 'spa', 'travel-insurance']
+      ['mauritius', 'flight', 'airport-transfer', 'luxury-hotel', 'spa', 'snorkeling', 'cruise'],
+      ['paris', 'train', 'boutique-hotel', 'museum', 'cooking', 'guide'],
+      ['paris', 'boutique-hotel', 'museum', 'cruise', 'photography'],
+      ['tokyo', 'train', 'boutique-hotel', 'museum', 'cooking', 'guide'],
+      ['bali', 'flight', 'resort', 'hiking', 'spa', 'travel-insurance'],
+      ['london', 'flight', 'boutique-hotel', 'museum', 'cruise', 'travel-insurance'],
+      ['dubai', 'flight', 'luxury-hotel', 'spa', 'airport-transfer', 'photography'],
     ];
-    
-    sequencePatterns.forEach(pattern => {
-      const items = pattern.map(itemId => 
-        this.items.find(item => item.id === itemId)!
-      ).filter(Boolean);
-      
+
+    sequencePatterns.forEach((pattern) => {
+      const items = pattern
+        .map((itemId) => this.items.find((item) => item.id === itemId)!)
+        .filter(Boolean);
+
       this.sequences.push({
         items,
-        frequency: Math.floor(Math.random() * 100) + 20,
-        support: Math.random() * 0.3 + 0.1
+        frequency: Math.floor(Math.random() * 80) + 30,
+        support: Math.random() * 0.25 + 0.15,
       });
     });
   }
@@ -465,6 +468,19 @@ export class MBAEngine {
 
   public getTopRules(limit: number = 10): MBAAssociationRule[] {
     return this.rules
+      .sort((a, b) => b.lift - a.lift)
+      .slice(0, limit);
+  }
+
+  /** Returns top rules that contain any of the given item ids (e.g. liked destination). Used to prioritize bundles for user context. */
+  public getTopRulesContainingItems(itemIds: string[], limit: number = 5): MBAAssociationRule[] {
+    if (itemIds.length === 0) return [];
+    const idSet = new Set(itemIds.map((id) => id.toLowerCase()));
+    return this.rules
+      .filter(
+        (rule) =>
+          [...rule.antecedent, ...rule.consequent].some((item) => idSet.has(item.id.toLowerCase())),
+      )
       .sort((a, b) => b.lift - a.lift)
       .slice(0, limit);
   }

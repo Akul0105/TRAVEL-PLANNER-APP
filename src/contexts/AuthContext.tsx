@@ -10,6 +10,8 @@ type AuthContextType = {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  /** True when the user is signed in anonymously (guest). They can use Scrapbook and likes; prompt to sign in with email to save across devices. */
+  isAnonymous: boolean;
   signInWithOtp: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -39,21 +41,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [user?.id, fetchProfile]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
-      setUser(s?.user ?? null);
-      if (s?.user?.id) fetchProfile(s.user.id).finally(() => setLoading(false));
-      else setLoading(false);
-    });
+    if (typeof window === 'undefined') {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      const { data: { session: s } } = await supabase.auth.getSession();
+
+      if (cancelled) return;
+      if (s?.user) {
+        setSession(s);
+        setUser(s.user);
+        if (s.user.id) await fetchProfile(s.user.id).finally(() => { if (!cancelled) setLoading(false); });
+        else setLoading(false);
+        return;
+      }
+
+      const { data: anonData, error: anonError } = await supabase.auth.signInAnonymously();
+
+      if (cancelled) return;
+      if (anonError) {
+        console.error('[Auth] Anonymous sign-in failed:', anonError.message, anonError);
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+      if (anonData?.session?.user) {
+        setSession(anonData.session);
+        setUser(anonData.session.user);
+        if (anonData.session.user.id) {
+          await fetchProfile(anonData.session.user.id).finally(() => { if (!cancelled) setLoading(false); });
+        } else {
+          setLoading(false);
+        }
+      } else {
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+      }
+    })();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => {
+      if (cancelled) return;
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user?.id) fetchProfile(s.user.id);
       else setProfile(null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, [fetchProfile]);
 
   const signInWithOtp = useCallback(async (email: string) => {
@@ -79,11 +124,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ?? null };
   }, [user?.id, fetchProfile]);
 
+  const isAnonymous = !!(user && (user as { is_anonymous?: boolean }).is_anonymous);
+
   const value: AuthContextType = {
     user,
     session,
     profile,
     loading,
+    isAnonymous,
     signInWithOtp,
     signOut,
     refreshProfile,

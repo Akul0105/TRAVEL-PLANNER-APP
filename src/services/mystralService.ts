@@ -9,18 +9,23 @@ const MISTRAL_API_KEY = process.env.MISTRAL_API_KEY || '';
 const MISTRAL_CHAT_URL = 'https://api.mistral.ai/v1/chat/completions';
 const MISTRAL_MODEL = 'mistral-small-latest';
 
-/**
- * System prompt: help users browse the catalog and use the site; explain MBA when asked.
- */
-const TRAVEL_AGENT_SYSTEM_PROMPT = `You are a friendly travel assistant for Planify. Your role is to help users USE THE WEBSITE and BROWSE THE CATALOG, not to ask personal or past-travel questions.
+const CATALOG_DESTINATIONS = 'Mauritius, London, Paris, Tokyo, Bali, Dubai, Rome, Barcelona, Santorini, Amsterdam, Lisbon, Istanbul, Singapore, Bangkok, Sydney, New York, Los Angeles, Miami, Cape Town, Marrakech, Reykjavik, Prague, Vienna, Seoul, Hong Kong, Maldives, Zanzibar, Queenstown, Rio de Janeiro, Cancún';
+const CATALOG_ACTIVITIES = 'hiking, snorkeling, museums, spa, cooking classes, food tours, beach, culture, adventure, boat cruise';
 
-IMPORTANT:
-- Keep responses SHORT (1–4 sentences). Be helpful and conversational.
-- Help users navigate: home page catalog (browse destinations, like/dislike), Scrapbook (saved places, suggested bundles), and how recommendations work.
-- Do NOT ask about their past trips, budget, travel style, or preferences. Do NOT run a questionnaire.
-- If they ask about "bundles" or "recommendations", explain that liking and disliking places on the home page catalog (and using the Scrapbook) helps the system suggest personalized travel bundles using market basket analysis (MBA) — i.e. which destinations and activities are often chosen together.
-- You may briefly explain MBA if they ask: we look at patterns in what people combine (e.g. Paris + museum, Bali + spa) to suggest bundles that fit their tastes based on their likes and clicks.
-- Do NOT offer to book flights or hotels. Point them to the catalog and Scrapbook for exploring and saving suggestions.`;
+/**
+ * System prompt: suggest real places/activities, help browse the site, and optionally output ADD block for "Add to list".
+ */
+const TRAVEL_AGENT_SYSTEM_PROMPT = `You are a friendly travel assistant for Planify. Help users discover places, add them to their Scrapbook, and browse the website.
+
+RULES:
+- Keep responses SHORT (2–5 sentences). Be conversational.
+- SUGGEST REAL PLACES when they ask (e.g. "best for hiking?", "where for beaches?"): only suggest from this list: ${CATALOG_DESTINATIONS}. For activities use: ${CATALOG_ACTIVITIES}.
+- HELP THEM BROWSE: tell them to open the "Home" page to see the catalog and use like/dislike; tell them to open "Scrapbook" to see their bucket list, bundles, and suggested packages. Example: "Check the home page — scroll to Explore more to see Paris and Bali. Like the ones you want; they’ll show up on your Scrapbook."
+- When you suggest specific places or activities they might want to save, end your reply with exactly one line (no extra text after it) in this format so the app can offer "Add to list":
+  [ADD:destinations:Name1,Name2|activities:Act1,Act2]
+  Use only names from the lists above. You can omit destinations or activities (e.g. [ADD:destinations:Paris,Bali|activities:] or [ADD:destinations:|activities:Hiking,Museums]). If you are not suggesting any specific place or activity to add, do not add this line.
+- Explain that liking places on the home page and adding items on Scrapbook improves their bundle suggestions (market basket analysis).
+- Do NOT offer to book flights or hotels. Do NOT run a long questionnaire.`;
 
 export type ProfileContext = {
   activities_liked?: string[];
@@ -130,18 +135,46 @@ function buildConversationContext(messages: ChatMessage[], tripInfo?: TripInfo, 
   return contextPrompt;
 }
 
+export type ChatSuggestions = {
+  destinations: string[];
+  activities: string[];
+};
+
+// Match [ADD:destinations:...|activities:...] anywhere; allow newlines so we always strip it from visible chat text
+const ADD_BLOCK_REGEX = /\[ADD:destinations:[\s\S]*?\|activities:[\s\S]*?\]\s*/gi;
+
+function parseAddBlock(raw: string): { text: string; suggestions: ChatSuggestions | null } {
+  const parseOne = (block: string): ChatSuggestions | null => {
+    const m = block.match(/\[ADD:destinations:([\s\S]*?)\|activities:([\s\S]*?)\]/i);
+    if (!m) return null;
+    const destStr = m[1].trim().replace(/\s+/g, ' ');
+    const actStr = m[2].trim().replace(/\s+/g, ' ');
+    const destinations = destStr ? destStr.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    const activities = actStr ? actStr.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    if (destinations.length === 0 && activities.length === 0) return null;
+    return { destinations, activities };
+  };
+  const firstBlock = raw.match(ADD_BLOCK_REGEX)?.[0];
+  const suggestions = firstBlock ? parseOne(firstBlock) : null;
+  const text = raw.replace(ADD_BLOCK_REGEX, '').trim();
+  return { text, suggestions };
+}
+
+export type SendChatMessageResult = { text: string; suggestions: ChatSuggestions | null };
+
 /**
  * Send a chat message to the Mistral API
- * @param messages - Array of chat messages including conversation history
- * @param tripInfo - Optional trip information collected from user
- * @param profileContext - Optional profile/scrapbook (activities, food, bucket list)
- * @returns Promise with the AI response
+ * @returns Promise with { text, suggestions } so the UI can show "Add to bucket list" / "Add to activities"
  */
-export async function sendChatMessage(messages: ChatMessage[], tripInfo?: TripInfo, profileContext?: ProfileContext): Promise<string> {
+export async function sendChatMessage(
+  messages: ChatMessage[],
+  tripInfo?: TripInfo,
+  profileContext?: ProfileContext,
+): Promise<SendChatMessageResult> {
   const apiKey = MISTRAL_API_KEY;
   if (!apiKey) {
     console.error('Missing MISTRAL_API_KEY in environment');
-    return "I'm not configured yet. Please add MISTRAL_API_KEY to your .env.local and try again.";
+    return { text: "I'm not configured yet. Please add MISTRAL_API_KEY to your .env.local and try again.", suggestions: null };
   }
 
   const systemContent = buildConversationContext(messages, tripInfo, profileContext);
@@ -165,7 +198,7 @@ export async function sendChatMessage(messages: ChatMessage[], tripInfo?: TripIn
       body: JSON.stringify({
         model: MISTRAL_MODEL,
         messages: mistralMessages,
-        max_tokens: 256,
+        max_tokens: 320,
         temperature: 0.7,
       }),
     });
@@ -173,17 +206,18 @@ export async function sendChatMessage(messages: ChatMessage[], tripInfo?: TripIn
     if (!response.ok) {
       const errText = await response.text();
       console.error('Mistral API error:', response.status, errText);
-      return "I'm having a small hiccup. Please try again in a moment.";
+      return { text: "I'm having a small hiccup. Please try again in a moment.", suggestions: null };
     }
 
     const data = (await response.json()) as {
       choices?: Array<{ message?: { content?: string } }>;
     };
-    const text = data.choices?.[0]?.message?.content?.trim();
-    return text || "I didn't get a clear reply. Want to try again?";
+    const raw = data.choices?.[0]?.message?.content?.trim() || "I didn't get a clear reply. Want to try again?";
+    const { text, suggestions } = parseAddBlock(raw);
+    return { text: text || "I didn't get a clear reply. Want to try again?", suggestions };
   } catch (err) {
     console.error('Mistral request failed:', err);
-    return "I couldn't reach the server. Please try again in a moment.";
+    return { text: "I couldn't reach the server. Please try again in a moment.", suggestions: null };
   }
 }
 

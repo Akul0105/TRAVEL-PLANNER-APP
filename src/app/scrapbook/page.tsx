@@ -16,8 +16,16 @@ function ensureStringArray(v: unknown): string[] {
   return [];
 }
 
+/** Format catalog item_id to display name (e.g. paris → Paris, new-york → New York). */
+function formatCatalogItemName(id: string): string {
+  return id
+    .split(/[-_\s]+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
 export default function ScrapbookPage() {
-  const { user, profile, loading: authLoading, updateProfile, refreshProfile } = useAuth();
+  const { user, profile, loading: authLoading, updateProfile, refreshProfile, isAnonymous } = useAuth();
   const [visited, setVisited] = useState<VisitedDestination[]>([]);
   const [bundles, setBundles] = useState<UserBundle[]>([]);
   const [packages, setPackages] = useState<SuggestedPackage[]>([]);
@@ -33,6 +41,7 @@ export default function ScrapbookPage() {
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [suggestingBundles, setSuggestingBundles] = useState(false);
   const [suggestingPackage, setSuggestingPackage] = useState(false);
+  const [catalogLikes, setCatalogLikes] = useState<{ item_id: string; item_type: string }[]>([]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -40,26 +49,40 @@ export default function ScrapbookPage() {
       return;
     }
     const fetch = async () => {
-      const [vRes, bRes, pRes] = await Promise.all([
+      const [vRes, bRes, pRes, feedbackRes] = await Promise.all([
         supabase.from('visited_destinations').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('user_bundles').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('suggested_packages').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('catalog_feedback').select('item_id, item_type').eq('user_id', user.id).eq('action', 'like'),
       ]);
       if (!vRes.error) setVisited((vRes.data as VisitedDestination[]) ?? []);
       if (!bRes.error) setBundles((bRes.data as UserBundle[]) ?? []);
       if (!pRes.error) setPackages((pRes.data as SuggestedPackage[]) ?? []);
+      if (!feedbackRes.error) setCatalogLikes((feedbackRes.data as { item_id: string; item_type: string }[]) ?? []);
       setLoading(false);
     };
     fetch();
   }, [user?.id]);
 
   useEffect(() => {
-    if (profile) {
-      setActivitiesLiked(ensureStringArray(profile.activities_liked));
-      setFoodPrefs(ensureStringArray(profile.food_preferences));
-      setBucketList(ensureStringArray(profile.bucket_list));
+    if (!profile) return;
+    setActivitiesLiked(ensureStringArray(profile.activities_liked));
+    setFoodPrefs(ensureStringArray(profile.food_preferences));
+
+    const profileBucket = ensureStringArray(profile.bucket_list);
+    const likedDestinations = catalogLikes
+      .filter((f) => (f.item_type || 'destination').toLowerCase() === 'destination')
+      .map((f) => formatCatalogItemName(f.item_id));
+    const seen = new Set(profileBucket.map((x) => x.toLowerCase().trim()));
+    const merged = [...profileBucket];
+    for (const name of likedDestinations) {
+      if (name && !seen.has(name.toLowerCase().trim())) {
+        seen.add(name.toLowerCase().trim());
+        merged.push(name);
+      }
     }
-  }, [profile?.id, profile?.activities_liked, profile?.food_preferences, profile?.bucket_list]);
+    setBucketList(merged);
+  }, [profile?.id, profile?.activities_liked, profile?.food_preferences, profile?.bucket_list, catalogLikes]);
 
   const addDestination = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,13 +213,13 @@ export default function ScrapbookPage() {
               My Scrapbook
             </h1>
             <p className="text-[#6b6560] text-lg max-w-2xl">
-              Sign in with your email (via the chat) to see your visited destinations and personalized bundles here.
+              Sign in with your email to see your visited destinations and personalized bundles here.
             </p>
           </div>
         </section>
         <div className="container mx-auto px-4 py-12">
           <div className="bg-white rounded-lg border border-[#e8e4df] p-8 text-center text-[#6b6560]">
-            Sign in using the button in the top right corner. Once signed in, your Scrapbook will show your destinations and MBA-recommended bundles.
+            Sign in using the button in the top right corner to use your Scrapbook and get MBA-recommended bundles.
           </div>
         </div>
       </div>
@@ -207,6 +230,11 @@ export default function ScrapbookPage() {
     <div className="min-h-screen bg-[#faf8f5]">
       <section className="py-16 border-b border-[#e8e4df]">
         <div className="container mx-auto px-4">
+          {isAnonymous && (
+            <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              You&apos;re browsing as a guest. Sign in with email to save your scrapbook across devices.
+            </div>
+          )}
           <h1 className="font-[family-name:var(--font-playfair)] text-3xl md:text-5xl font-semibold text-[#2c2825] mb-3">
             My Scrapbook
           </h1>
@@ -366,6 +394,9 @@ export default function ScrapbookPage() {
             <ListTodo className="w-5 h-5" /> Places to visit (bucket list)
           </h2>
           <p className="text-sm text-[#9c958f] mb-3">{ITEMS_HINT}</p>
+          {catalogLikes.some((f) => (f.item_type || 'destination').toLowerCase() === 'destination') && (
+            <p className="text-xs text-[#6b6560] mb-2">Includes places you liked on the home page.</p>
+          )}
           <div className="flex flex-wrap gap-3 mb-4">
             <input
               type="text"

@@ -84,15 +84,16 @@ export function useChatbot() {
       // Get updated messages for API call
       const updatedMessages = [...state.messages, userMessage];
       
-      // Send message to Gemini API
-      const response = await sendChatMessage(updatedMessages);
+      // Send message to Mistral API
+      const { text, suggestions } = await sendChatMessage(updatedMessages);
 
       // Create assistant message
       const assistantMessage: ChatMessage = {
         id: generateId(),
         role: 'assistant',
-        content: response,
+        content: text,
         timestamp: new Date(),
+        suggestions: suggestions ?? undefined,
       };
 
       // Add assistant message to state

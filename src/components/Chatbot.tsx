@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Trash2, Minimize2, Maximize2 } from 'lucide-react';
+import { Send, Bot, User, Trash2, Minimize2, Maximize2, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { ChatbotProps, ChatMessage } from '@/types';
@@ -18,7 +18,7 @@ const CHAT_WELCOME: ChatMessage = {
 };
 
 export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
-  const { user } = useAuth();
+  const { user, profile, isAnonymous, updateProfile, refreshProfile } = useAuth();
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
@@ -37,6 +37,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
       setCurrentSessionId(null);
       return;
     }
+    // Guest (anonymous) and signed-in users both get full chat; messages and suggestions are stored in DB
     if (sessionLoaded.current) return;
     sessionLoaded.current = true;
     (async () => {
@@ -124,6 +125,14 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
     let chatSessionId: string | null = await ensureSession();
     if (chatSessionId) await persistMessage(chatSessionId, 'user', userInput);
 
+    const profileContext = profile
+      ? {
+          activities_liked: Array.isArray(profile.activities_liked) ? profile.activities_liked.filter((x): x is string => typeof x === 'string') : [],
+          food_preferences: Array.isArray(profile.food_preferences) ? profile.food_preferences.filter((x): x is string => typeof x === 'string') : [],
+          bucket_list: Array.isArray(profile.bucket_list) ? profile.bucket_list.filter((x): x is string => typeof x === 'string') : [],
+        }
+      : undefined;
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -131,7 +140,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
         body: JSON.stringify({
           messages: [...messages, userMessage],
           tripInfo: {},
-          profileContext: undefined,
+          profileContext,
         }),
       });
 
@@ -142,6 +151,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
         role: 'assistant',
         content: data.response || "I didn't quite get that. Try asking about the catalog, Scrapbook, or how bundles work!",
         timestamp: new Date(),
+        suggestions: data.suggestions ?? undefined,
       };
       if (chatSessionId) await persistMessage(chatSessionId, 'assistant', assistantMessage.content);
       setMessages((prev) => [...prev, assistantMessage]);
@@ -172,8 +182,24 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
     }
   };
 
+  const chatSubtitle = !user ? 'Sign in to chat' : isAnonymous ? 'Chat for suggestions — sign in to save across devices' : 'Browse & bundles';
+
   const formatTime = (timestamp: Date) =>
     timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const addToBucketList = async (name: string) => {
+    const current = Array.isArray(profile?.bucket_list) ? profile.bucket_list.filter((x): x is string => typeof x === 'string') : [];
+    if (current.length >= 5 || current.some((x) => x.toLowerCase() === name.toLowerCase())) return;
+    await updateProfile({ bucket_list: [...current, name] });
+    await refreshProfile();
+  };
+
+  const addToActivities = async (name: string) => {
+    const current = Array.isArray(profile?.activities_liked) ? profile.activities_liked.filter((x): x is string => typeof x === 'string') : [];
+    if (current.length >= 5 || current.some((x) => x.toLowerCase() === name.toLowerCase())) return;
+    await updateProfile({ activities_liked: [...current, name] });
+    await refreshProfile();
+  };
 
   return (
     <AnimatePresence>
@@ -196,7 +222,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
               <div>
                 <h3 className="font-semibold text-white">Travel Assistant</h3>
                 <p className="text-[#e8e4df] text-xs">
-                  {phase === 'signed_out' ? 'Sign in to chat' : 'Browse & bundles'}
+                  {chatSubtitle}
                 </p>
               </div>
             </div>
@@ -231,6 +257,30 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                   )}
                 >
                   <ReactMarkdown>{message.content}</ReactMarkdown>
+                  {message.role === 'assistant' && message.suggestions && (message.suggestions.destinations?.length > 0 || message.suggestions.activities?.length > 0) && (
+                    <div className="mt-3 pt-3 border-t border-[#e8e4df] flex flex-wrap gap-2">
+                      {message.suggestions.destinations?.map((name) => (
+                        <button
+                          key={`dest-${name}`}
+                          type="button"
+                          onClick={() => addToBucketList(name)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2c2825] text-white text-xs hover:bg-[#4a4541]"
+                        >
+                          <Plus className="w-3 h-3" /> Add {name} to bucket list
+                        </button>
+                      ))}
+                      {message.suggestions.activities?.map((name) => (
+                        <button
+                          key={`act-${name}`}
+                          type="button"
+                          onClick={() => addToActivities(name)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#6b6560] text-white text-xs hover:bg-[#4a4541]"
+                        >
+                          <Plus className="w-3 h-3" /> Add {name} to activities
+                        </button>
+                      ))}
+                    </div>
+                  )}
                   <p className={cn('text-xs mt-1', message.role === 'user' ? 'text-[#e8e4df]' : 'text-[#6b6560]')}>
                     {formatTime(message.timestamp)}
                   </p>
@@ -267,7 +317,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 disabled={phase === 'signed_out' || isLoading}
-                placeholder={phase === 'signed_out' ? 'Sign in to chat...' : 'Ask about the catalog, Scrapbook, or MBA...'}
+                placeholder={phase === 'signed_out' ? 'Sign in to chat...' : 'Ask about destinations, Scrapbook, or bundles...'}
                 className={cn(
                   'flex-1 px-4 py-3 rounded-xl border border-[#e8e4df] bg-[#faf8f5] text-[#2c2825] placeholder:text-[#9c958f]',
                   'focus:outline-none focus:ring-2 focus:ring-[#2c2825] focus:border-[#2c2825]',

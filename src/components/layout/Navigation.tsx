@@ -13,7 +13,7 @@ export function Navigation() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
-  const { user, profile, signOut, loading: authLoading } = useAuth();
+  const { user, profile, signOut, loading: authLoading, isAnonymous } = useAuth();
 
   const navigation = [
     { name: 'Home', href: '/' },
@@ -86,11 +86,21 @@ export function Navigation() {
                     >
                       <User className="w-5 h-5" />
                       <span className="text-lg font-medium">
-                        {profile?.full_name || user.email?.split('@')[0] || 'Account'}
+                        {isAnonymous ? 'Guest' : (profile?.full_name || user.email?.split('@')[0] || 'Account')}
                       </span>
                     </button>
                     {accountMenuOpen && (
                       <div className="absolute right-0 top-full mt-1 py-1 w-48 rounded-xl border border-[#e8e4df] bg-[#faf8f5] shadow-lg">
+                        {isAnonymous && (
+                          <button
+                            type="button"
+                            onClick={() => { setAuthModalOpen(true); setAccountMenuOpen(false); }}
+                            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-[#2c2825] hover:bg-[#e8e4df] rounded-lg"
+                          >
+                            <LogIn className="w-4 h-4" />
+                            Sign in to save across devices
+                          </button>
+                        )}
                         <button
                           type="button"
                           onClick={handleSignOut}
@@ -147,8 +157,18 @@ export function Navigation() {
                   user ? (
                     <>
                       <div className="px-4 py-2 text-sm text-neutral-500">
-                        {profile?.full_name || user.email}
+                        {isAnonymous ? 'Guest' : (profile?.full_name || user.email)}
                       </div>
+                      {isAnonymous && (
+                        <button
+                          type="button"
+                          onClick={() => { setAuthModalOpen(true); setIsOpen(false); }}
+                          className="flex items-center gap-2 px-4 py-3 text-lg font-medium text-neutral-600 hover:bg-neutral-50 hover:text-black rounded-md"
+                        >
+                          <LogIn className="w-4 h-4" />
+                          Sign in to save across devices
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {
