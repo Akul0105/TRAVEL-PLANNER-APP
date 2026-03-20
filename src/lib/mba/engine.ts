@@ -391,6 +391,11 @@ export class MBAEngine {
   }
 
   // Public methods for MBA analysis
+  /** Read-only list for search / catalog (do not mutate). */
+  public getAllItems(): MBAItem[] {
+    return [...this.items];
+  }
+
   public getItemByIdOrName(idOrName: string): MBAItem | null {
     const key = idOrName.toLowerCase().trim();
     return this.items.find(

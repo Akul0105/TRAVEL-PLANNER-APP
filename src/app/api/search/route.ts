@@ -1,40 +1,42 @@
 /**
- * Search API Route
- * Handles POST requests from the frontend search bar
- * Connects to Mystral API (via mystralService.ts) to get smart, Google-like suggestions
+ * Search API — MBA-driven destinations & activities only (no booking spam).
+ * Optional Mistral one-liner when MISTRAL_API_KEY is set and a destination matches.
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { getSearchSuggestions } from "@/services/mystralService"; // make sure this file exists
+import { NextRequest, NextResponse } from 'next/server';
+import { buildMbaSearchSuggestions } from '@/services/mbaSearchService';
+import { generateSearchDestinationBlurb } from '@/services/mystralService';
 
 export async function POST(request: NextRequest) {
   try {
-    // 1️⃣ Get the "query" text from the frontend request
-    const { query } = await request.json();   //it reads the user's search text from the request 
+    const body = await request.json();
+    const query = typeof body?.query === 'string' ? body.query.trim() : '';
 
-    // 2️⃣ Validate the input
-    if (!query || typeof query !== "string") {   //checks if the query is valid
-      return NextResponse.json(
-        { error: "Query parameter is required" },
-        { status: 400 }
-      );
+    if (!query) {
+      return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 });
     }
 
-    // 3️⃣ Call the Mystral API service to get AI-generated search suggestions
-    const data = await getSearchSuggestions(query);   //sends query to  mystral and waits for suggestions
+    const built = buildMbaSearchSuggestions(query);
 
-    // 4️⃣ Send the suggestions back to the frontend
-    return NextResponse.json(data);   //returns the suggestions to the frontend so that the users can see it 
+    if (
+      built.suggestions.length > 0 &&
+      built.matchedSeed?.category === 'destination' &&
+      process.env.MISTRAL_API_KEY
+    ) {
+      const blurb = await generateSearchDestinationBlurb(
+        built.matchedSeed.name,
+        built.matchedSeed.tags,
+        built.mbaSummaryForLlm
+      );
+      if (blurb) {
+        built.suggestions[0] = { ...built.suggestions[0], subtitle: blurb };
+      }
+    }
+
+    const { matchedSeed: _m, mbaSummaryForLlm: _s, ...payload } = built;
+    return NextResponse.json(payload);
   } catch (error) {
-    console.error("Search API error:", error);
-
-    // 5️⃣ Handle and return any errors
-    return NextResponse.json(
-      { error: "Failed to fetch search suggestions" },
-      { status: 500 }
-    );
+    console.error('Search API error:', error);
+    return NextResponse.json({ error: 'Failed to fetch search suggestions' }, { status: 500 });
   }
 }
-
-// when someone types a search query, this code sends it to an AI service called mystral to get siggestions like Google does.
-//the code listens for search requests--> checks the input --> ask Mystral for suggestions --> send suggestions back to the user 

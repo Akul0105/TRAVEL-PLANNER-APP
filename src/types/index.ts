@@ -19,12 +19,14 @@ export interface ChatMessage {
   suggestions?: ChatSuggestions;
 }
 
-// Search suggestion interface for Google-like search functionality
+// Search suggestion interface (MBA-backed; no booking types in normal use)
 export interface SearchSuggestion {
   id: string;
   text: string;
   type: 'destination' | 'activity' | 'hotel' | 'flight' | 'package';
   popularity?: number;
+  /** MBA context or Mistral one-liner — shown under the title */
+  subtitle?: string;
 }
 
 // Travel destination interface

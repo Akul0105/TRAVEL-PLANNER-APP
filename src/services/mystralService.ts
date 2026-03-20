@@ -338,173 +338,44 @@ Output only the JSON object, no markdown code fence.`;
   }
 }
 
-/**
- * Generate travel-related search suggestions with market basket analysis
- * This simulates what would come from a search API
- * @param query - The search query
- * @returns Promise with search suggestions
- */
-export async function getSearchSuggestions(query: string): Promise<{suggestions: string[], marketBasket: string[]}> {
-  // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  // Enhanced travel database with market basket analysis
-  const travelDatabase = {
-    'mauritius': {
-      suggestions: [
-        'Mauritius beach resorts',
-        'Mauritius water sports',
-        'Mauritius cultural tours',
-        'Mauritius hiking trails',
-        'Mauritius luxury hotels'
-      ],
-      marketBasket: [
-        'Seychelles islands',
-        'Maldives resorts',
-        'Reunion Island',
-        'Madagascar tours',
-        'Zanzibar beaches'
-      ],
-      activities: [
-        'Seven Colored Earths',
-        'Chamarel Waterfall',
-        'Black River Gorges National Park',
-        'Port Louis markets',
-        'Trou aux Cerfs volcano'
-      ],
-      restaurants: [
-        'Le Château de Bel Ombre',
-        'La Table du Château',
-        'Le Pescatore',
-        'Domaine de l\'Etoile',
-        'Le Capitaine'
-      ]
-    },
-    'london': {
-      suggestions: [
-        'London city tours',
-        'London museums',
-        'London shopping',
-        'London restaurants',
-        'London attractions'
-      ],
-      marketBasket: [
-        'Paris city break',
-        'Edinburgh tours',
-        'Dublin pubs',
-        'Amsterdam canals',
-        'Brussels chocolate'
-      ],
-      activities: [
-        'Big Ben and Parliament',
-        'Tower of London',
-        'British Museum',
-        'London Eye',
-        'West End shows'
-      ],
-      restaurants: [
-        'The Shard restaurants',
-        'Borough Market',
-        'Covent Garden dining',
-        'Camden food markets',
-        'Traditional British pubs'
-      ]
-    },
-    'paris': {
-      suggestions: [
-        'Paris romantic tours',
-        'Paris museums',
-        'Paris food tours',
-        'Paris shopping',
-        'Paris attractions'
-      ],
-      marketBasket: [
-        'London city break',
-        'Rome historical tours',
-        'Barcelona architecture',
-        'Amsterdam canals',
-        'Prague old town'
-      ],
-      activities: [
-        'Eiffel Tower',
-        'Louvre Museum',
-        'Notre-Dame Cathedral',
-        'Champs-Élysées',
-        'Seine River cruise'
-      ],
-      restaurants: [
-        'Traditional bistros',
-        'Michelin star restaurants',
-        'Café de Flore',
-        'Le Marais dining',
-        'Montmartre cafés'
-      ]
-    },
-    'tokyo': {
-      suggestions: [
-        'Tokyo city tours',
-        'Tokyo temples',
-        'Tokyo food tours',
-        'Tokyo shopping',
-        'Tokyo attractions'
-      ],
-      marketBasket: [
-        'Kyoto temples',
-        'Osaka food scene',
-        'Seoul K-pop tours',
-        'Bangkok street food',
-        'Singapore gardens'
-      ],
-      activities: [
-        'Senso-ji Temple',
-        'Tokyo Skytree',
-        'Shibuya Crossing',
-        'Tsukiji Fish Market',
-        'Harajuku fashion'
-      ],
-      restaurants: [
-        'Sushi restaurants',
-        'Ramen shops',
-        'Izakaya bars',
-        'Traditional kaiseki',
-        'Street food stalls'
-      ]
-    }
-  };
-
-  const lowerQuery = query.toLowerCase();
-  
-  // Find matching destination
-  for (const [destination, data] of Object.entries(travelDatabase)) {
-    if (lowerQuery.includes(destination)) {
-      return {
-        suggestions: data.suggestions,
-        marketBasket: data.marketBasket
-      };
-    }
+/** One short sentence for search dropdown (server-only; uses MISTRAL_API_KEY). */
+export async function generateSearchDestinationBlurb(
+  placeName: string,
+  tags: string[],
+  mbaSummary: string
+): Promise<string | null> {
+  if (!MISTRAL_API_KEY) return null;
+  try {
+    const response = await fetch(MISTRAL_CHAT_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${MISTRAL_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: MISTRAL_MODEL,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You write exactly one short sentence for a travel discovery app (Planify). Describe the place for curious travellers. Forbidden: booking, reservations, flights, hotels, prices, URLs, statistics jargon.',
+          },
+          {
+            role: 'user',
+            content: `Place: ${placeName}. Vibes: ${tags.join(', ') || 'travel'}. Traveller interest patterns (phrase naturally, do not quote numbers): ${mbaSummary || 'beaches and outdoor time'}. Maximum 32 words.`,
+          },
+        ],
+        max_tokens: 100,
+        temperature: 0.45,
+      }),
+    });
+    if (!response.ok) return null;
+    const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    const raw = data.choices?.[0]?.message?.content?.trim();
+    return raw || null;
+  } catch {
+    return null;
   }
-
-  // Default suggestions for other queries
-  const defaultSuggestions = [
-    'Travel packages',
-    'Hotel bookings',
-    'Flight deals',
-    'Tourist attractions',
-    'Local restaurants'
-  ];
-
-  const defaultMarketBasket = [
-    'Travel insurance',
-    'Airport transfers',
-    'Local SIM cards',
-    'Travel guides',
-    'Currency exchange'
-  ];
-
-  return {
-    suggestions: defaultSuggestions,
-    marketBasket: defaultMarketBasket
-  };
 }
 
 /**

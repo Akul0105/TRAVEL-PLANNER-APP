@@ -133,6 +133,9 @@ function DestinationCard({
 
 interface DestinationCatalogProps {
   sectionRef?: RefObject<HTMLElement | null>;
+  /** When set, carousel scrolls to this catalog id once (e.g. after search pick). */
+  catalogFocusId?: string | null;
+  onCatalogFocusConsumed?: () => void;
   onSearch: (query: string) => void;
   suggestions: SearchSuggestion[];
   marketBasketResults?: SearchSuggestion[];
@@ -143,6 +146,8 @@ interface DestinationCatalogProps {
 
 export function DestinationCatalog({
   sectionRef,
+  catalogFocusId,
+  onCatalogFocusConsumed,
   onSearch,
   suggestions,
   marketBasketResults,
@@ -247,6 +252,16 @@ export function DestinationCatalog({
     }, 4800);
     return () => clearInterval(interval);
   }, [api]);
+
+  /** Search picked a catalog destination — jump carousel there (no /details page). */
+  useEffect(() => {
+    if (!catalogFocusId || !api) return;
+    const idx = DESTINATIONS.findIndex((d) => d.id === catalogFocusId);
+    if (idx >= 0) {
+      api.scrollTo(idx);
+    }
+    onCatalogFocusConsumed?.();
+  }, [catalogFocusId, api, onCatalogFocusConsumed]);
 
   const destinationItems = useMemo(() => DESTINATIONS, []);
   const nDest = destinationItems.length;

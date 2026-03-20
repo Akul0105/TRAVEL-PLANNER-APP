@@ -1,20 +1,14 @@
 'use client';
 import { useState, useRef } from 'react';
-import { Search, Loader2, MapPin, Plane, Hotel, Package, Activity } from 'lucide-react';
+import { Search, Loader2, MapPin, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchBarProps, SearchSuggestion } from '@/types';
 import { cn } from '@/lib/utils';
 
 function getSuggestionIcon(type: SearchSuggestion['type']) {
   const iconClass = 'w-4 h-4 text-neutral-500';
-  switch (type) {
-    case 'destination': return <MapPin className={iconClass} />;
-    case 'flight': return <Plane className={iconClass} />;
-    case 'hotel': return <Hotel className={iconClass} />;
-    case 'package': return <Package className={iconClass} />;
-    case 'activity': return <Activity className={iconClass} />;
-    default: return <Search className={iconClass} />;
-  }
+  if (type === 'activity') return <Activity className={iconClass} />;
+  return <MapPin className={iconClass} />;
 }
 
 export function SearchBar({
@@ -89,7 +83,7 @@ export function SearchBar({
             onFocus={handleFocus}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
-            placeholder="Search for destinations, hotels, flights, packages..."
+            placeholder="Search destinations & activities (MBA-powered)…"
             className={cn(
               'w-full rounded-lg border text-base',
               dense ? 'h-11 pl-10 pr-14 text-sm' : 'h-14 pl-12 pr-16',
@@ -141,9 +135,13 @@ export function SearchBar({
                 )}
               >
                 {getSuggestionIcon(suggestion.type)}
-                <div className="flex-1">
+                <div className="flex-1 min-w-0">
                   <p className="text-black font-medium text-base">{suggestion.text}</p>
-                  <p className="text-base text-neutral-500 capitalize">{suggestion.type} • {suggestion.popularity}% popular</p>
+                  <p className="text-sm text-neutral-500 line-clamp-2">
+                    {suggestion.subtitle
+                      ? suggestion.subtitle
+                      : `${suggestion.type === 'activity' ? 'Activity' : 'Destination'}${suggestion.popularity != null ? ` · match score ${suggestion.popularity}%` : ''}`}
+                  </p>
                 </div>
               </motion.div>
             ))}
@@ -156,7 +154,7 @@ export function SearchBar({
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 text-center">
           <p className={cn('text-sm font-medium mb-3', isDark ? 'text-white/80' : 'text-neutral-600')}>Popular searches</p>
           <div className="flex flex-wrap gap-2.5 justify-center">
-            {['Paris', 'Tokyo', 'Bali', 'New York', 'London'].map((term) => (
+            {['Mauritius', 'Paris', 'Tokyo', 'Bali', 'Dubai'].map((term) => (
               <button
                 key={term}
                 onClick={() => {

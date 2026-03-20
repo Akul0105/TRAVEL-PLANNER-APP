@@ -1,21 +1,34 @@
 /**
- * Custom hook for managing search functionality
- * This hook handles search state, suggestions, and debounced API calls
+ * Search: debounced POST /api/search — MBA destinations & activities + optional Mistral blurb.
+ * Picking a result does not navigate to /details; parent handles catalog focus via onSuggestionPicked.
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { SearchSuggestion, SearchState } from '@/types';
-import { getSearchSuggestions } from '@/services/mystralService';
 import { debounce, generateId } from '@/lib/utils';
 
-/**
- * Custom hook for search functionality
- * Manages search state, suggestions, and debounced API calls
- * @returns Object containing search state and functions
- */
-export function useSearch() {
-  const router = useRouter();
+type SearchApiRow = {
+  id: string;
+  text: string;
+  type: SearchSuggestion['type'];
+  subtitle?: string;
+  popularity?: number;
+};
+
+type SearchApiResponse = {
+  suggestions: SearchApiRow[];
+  marketBasket: SearchApiRow[];
+};
+
+export type UseSearchOptions = {
+  /** Called when user picks a dropdown row — scroll catalog, etc. (no route change here). */
+  onSuggestionPicked?: (suggestion: SearchSuggestion) => void;
+};
+
+export function useSearch(options?: UseSearchOptions) {
+  const onPickRef = useRef(options?.onSuggestionPicked);
+  onPickRef.current = options?.onSuggestionPicked;
+
   const [state, setState] = useState<SearchState>({
     query: '',
     suggestions: [],
@@ -26,131 +39,113 @@ export function useSearch() {
 
   const [marketBasketResults, setMarketBasketResults] = useState<SearchSuggestion[]>([]);
 
-  /**
-   * Debounced function to fetch search suggestions
-   * This prevents excessive API calls while user is typing
-   */
   const debouncedFetchSuggestions = useCallback(
     debounce(async (query: string) => {
       if (!query.trim()) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           suggestions: [],
           showSuggestions: false,
           isLoading: false,
         }));
+        setMarketBasketResults([]);
         return;
       }
 
-      setState(prev => ({ ...prev, isLoading: true }));
+      setState((prev) => ({ ...prev, isLoading: true }));
 
       try {
-        const { suggestions, marketBasket } = await getSearchSuggestions(query);
-        
-        // Convert string suggestions to SearchSuggestion objects
-        const searchSuggestions: SearchSuggestion[] = suggestions.map((suggestion, index) => ({
-          id: generateId(),
-          text: suggestion,
-          type: getSuggestionType(suggestion),
-          popularity: Math.floor(Math.random() * 100), // Simulate popularity score
-        }));
+        const res = await fetch('/api/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: query.trim() }),
+        });
+        if (!res.ok) throw new Error(String(res.status));
+        const data = (await res.json()) as SearchApiResponse;
 
-        // Convert market basket results to SearchSuggestion objects
-        const marketBasketSuggestions: SearchSuggestion[] = marketBasket.map((item, index) => ({
-          id: generateId(),
-          text: item,
-          type: getSuggestionType(item),
-          popularity: Math.floor(Math.random() * 100),
-        }));
+        const toSuggestion = (row: SearchApiRow): SearchSuggestion => ({
+          id: row.id || generateId(),
+          text: row.text,
+          type: row.type === 'activity' ? 'activity' : 'destination',
+          subtitle: row.subtitle,
+          popularity: row.popularity,
+        });
 
-        setState(prev => ({
+        const primary = (data.suggestions ?? []).map(toSuggestion);
+        const basket = (data.marketBasket ?? []).map(toSuggestion);
+
+        const seen = new Set(primary.map((s) => s.id));
+        const merged: SearchSuggestion[] = [...primary];
+        for (const b of basket) {
+          if (seen.has(b.id)) continue;
+          seen.add(b.id);
+          merged.push({ ...b, id: `mba-bundle-${b.id}` });
+        }
+
+        setState((prev) => ({
           ...prev,
-          suggestions: searchSuggestions,
-          showSuggestions: true,
+          suggestions: merged,
+          showSuggestions: merged.length > 0,
           isLoading: false,
         }));
-
-        setMarketBasketResults(marketBasketSuggestions);
+        setMarketBasketResults(basket);
       } catch (error) {
         console.error('Error fetching suggestions:', error);
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           suggestions: [],
           showSuggestions: false,
           isLoading: false,
         }));
+        setMarketBasketResults([]);
       }
     }, 300),
     []
   );
 
-  /**
-   * Update search query and trigger suggestions
-   * @param query - The new search query
-   */
-  const updateQuery = useCallback((query: string) => {
-    setState(prev => ({ ...prev, query }));
-    debouncedFetchSuggestions(query);
-  }, [debouncedFetchSuggestions]);
+  const updateQuery = useCallback(
+    (query: string) => {
+      setState((prev) => ({ ...prev, query }));
+      debouncedFetchSuggestions(query);
+    },
+    [debouncedFetchSuggestions]
+  );
 
-  /**
-   * Handle search submission
-   * @param query - The search query to submit
-   */
   const performSearch = useCallback((query: string) => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       query,
       showSuggestions: false,
       isLoading: true,
     }));
-
-    // Simulate search results (in a real app, this would call a search API)
     setTimeout(() => {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isLoading: false,
         showSuggestions: false,
       }));
-    }, 1000);
+    }, 400);
   }, []);
 
-  /**
-   * Handle suggestion click - Navigate to details page
-   * @param suggestion - The clicked suggestion
-   */
   const handleSuggestionClick = useCallback((suggestion: SearchSuggestion) => {
-    setState(prev => ({
+    const label = suggestion.text;
+    setState((prev) => ({
       ...prev,
-      query: suggestion.text,
+      query: label,
       showSuggestions: false,
     }));
-    
-    // Navigate to details page with the suggestion information
-    const params = new URLSearchParams({
-      query: suggestion.text,
-      type: suggestion.type,
-      id: suggestion.id,
-    });
-    
-    router.push(`/details?${params.toString()}`);
-  }, [router]);
+    onPickRef.current?.(suggestion);
+  }, []);
 
-  /**
-   * Hide suggestions
-   */
   const hideSuggestions = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       showSuggestions: false,
     }));
   }, []);
 
-  /**
-   * Clear search
-   */
   const clearSearch = useCallback(() => {
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
       query: '',
       suggestions: [],
@@ -158,49 +153,20 @@ export function useSearch() {
       showSuggestions: false,
       isLoading: false,
     }));
+    setMarketBasketResults([]);
   }, []);
 
-  /**
-   * Determine suggestion type based on content
-   * @param suggestion - The suggestion text
-   * @returns The suggestion type
-   */
-  function getSuggestionType(suggestion: string): SearchSuggestion['type'] {
-    const lowerSuggestion = suggestion.toLowerCase();
-    
-    if (lowerSuggestion.includes('hotel') || lowerSuggestion.includes('resort')) {
-      return 'hotel';
-    }
-    if (lowerSuggestion.includes('flight') || lowerSuggestion.includes('airline')) {
-      return 'flight';
-    }
-    if (lowerSuggestion.includes('package') || lowerSuggestion.includes('deal')) {
-      return 'package';
-    }
-    if (lowerSuggestion.includes('tour') || lowerSuggestion.includes('activity')) {
-      return 'activity';
-    }
-    
-    return 'destination';
-  }
-
-  // Cleanup debounced function on unmount
   useEffect(() => {
-    return () => {
-      // Cleanup is handled by the debounce function itself
-    };
+    return () => {};
   }, []);
 
   return {
-    // State
     query: state.query,
     suggestions: state.suggestions,
     marketBasketResults,
     results: state.results,
     isLoading: state.isLoading,
     showSuggestions: state.showSuggestions,
-    
-    // Actions
     updateQuery,
     performSearch,
     handleSuggestionClick,
