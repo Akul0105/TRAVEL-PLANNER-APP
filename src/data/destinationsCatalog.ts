@@ -42,7 +42,7 @@ export const DESTINATIONS: CatalogItem[] = [
   { id: 'rio', name: 'Rio de Janeiro', description: 'Sugarloaf, samba, Atlantic beaches', image: 'https://images.pexels.com/photos/1486576/pexels-photo-1486576.jpeg?auto=compress&cs=tinysrgb&w=1400', region: 'Americas' },
   { id: 'cancun', name: 'Cancún', description: 'Caribbean blues, cenotes, Mayan coast', image: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?auto=format&w=1400&q=80', region: 'Americas' },
   { id: 'kyoto', name: 'Kyoto', description: 'Bamboo groves, geiko districts, zen gardens', image: 'https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&w=1400&q=80', region: 'Asia' },
-  { id: 'dubrovnik', name: 'Dubrovnik', description: 'Adriatic walls, island day trips', image: 'https://images.unsplash.com/photo-1559827260-dc66d52bef27?auto=format&w=1400&q=80', region: 'Europe' },
+  { id: 'dubrovnik', name: 'Dubrovnik', description: 'Adriatic walls, island day trips', image: 'https://images.pexels.com/photos/3568441/pexels-photo-3568441.jpeg?auto=compress&cs=tinysrgb&w=1400', region: 'Europe' },
   { id: 'edinburgh', name: 'Edinburgh', description: 'Castle rock, festivals, whisky culture', image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?auto=format&w=1400&q=80', region: 'Europe' },
   { id: 'florence', name: 'Florence', description: 'Renaissance art, Duomo, Tuscan tables', image: 'https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?auto=format&w=1400&q=80', region: 'Europe' },
   { id: 'athens', name: 'Athens', description: 'Acropolis light, tavernas, Aegean hops', image: 'https://images.unsplash.com/photo-1555993539-1732b0258235?auto=format&w=1400&q=80', region: 'Europe' },

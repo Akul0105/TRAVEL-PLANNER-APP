@@ -13,10 +13,14 @@ export type DestinationHighlight = {
 
 const IMG = (id: string) => `https://images.unsplash.com/${id}?auto=format&w=900&q=80`;
 
+/** Pexels CDN — use when Unsplash photo IDs 404 (removed / blocked upstream). */
+const PEX = (photoId: number, w = 900) =>
+  `https://images.pexels.com/photos/${photoId}/pexels-photo-${photoId}.jpeg?auto=compress&cs=tinysrgb&w=${w}`;
+
 const HIGHLIGHTS: Record<string, DestinationHighlight[]> = {
   mauritius: [
     { id: 'mauritius-snorkeling', title: 'Snorkeling & diving', type: 'activity', image: IMG('photo-1544551763-46a013bb70d5') },
-    { id: 'mauritius-lagoon', title: 'Lagoon catamaran', type: 'activity', image: IMG('photo-1583470790878-853f5c5838ec') },
+    { id: 'mauritius-lagoon', title: 'Lagoon catamaran', type: 'activity', image: IMG('photo-1507525428034-b723cf961d3e') },
     { id: 'mauritius-fish', title: 'Creole fish curry', type: 'food', image: IMG('photo-1546069901-ba9599a7e63c') },
     { id: 'mauritius-earth', title: 'Seven Coloured Earth', type: 'attraction', image: IMG('photo-1469854523086-cc02fe5d8800') },
   ],
@@ -167,25 +171,25 @@ const HIGHLIGHTS: Record<string, DestinationHighlight[]> = {
   maldives: [
     { id: 'maldives-snorkel', title: 'House reef snorkel', type: 'activity', image: IMG('photo-1514282401047-d79a71a590e8') },
     { id: 'maldives-tuna', title: 'Tuna curry & roshi', type: 'food', image: IMG('photo-1546069901-ba9599a7e63c') },
-    { id: 'maldives-sunset', title: 'Sunset dhoni cruise', type: 'activity', image: IMG('photo-1589979481226-c96e7d87b7fc') },
+    { id: 'maldives-sunset', title: 'Sunset dhoni cruise', type: 'activity', image: PEX(1450353) },
     { id: 'maldives-spa', title: 'Overwater spa', type: 'activity', image: IMG('photo-1544161515-4ab6ce6db874') },
   ],
   zanzibar: [
     { id: 'zanzibar-stone', title: 'Stone Town spice tour', type: 'activity', image: IMG('photo-1589553416260-f586c8f1514f') },
     { id: 'zanzibar-seafood', title: 'Lobster on the beach', type: 'food', image: IMG('photo-1559339352-11d035aa65de') },
     { id: 'zanzibar-prison', title: 'Prison Island turtles', type: 'attraction', image: IMG('photo-1507525428034-b723cf961d3e') },
-    { id: 'zanzibar-spice', title: 'Clove & vanilla farm', type: 'activity', image: IMG('photo-1469474968028-338989a2e8c0') },
+    { id: 'zanzibar-spice', title: 'Clove & vanilla farm', type: 'activity', image: PEX(6214455) },
   ],
   queenstown: [
-    { id: 'queenstown-bungee', title: 'Kawarau bungee', type: 'activity', image: IMG('photo-1507699629798-6875474293c8') },
-    { id: 'queenstown-fjord', title: 'Milford Sound day', type: 'attraction', image: IMG('photo-1469521669194-babb45599def') },
+    { id: 'queenstown-bungee', title: 'Kawarau bungee', type: 'activity', image: PEX(4428294) },
+    { id: 'queenstown-fjord', title: 'Milford Sound day', type: 'attraction', image: PEX(3468041) },
     { id: 'queenstown-burger', title: 'Fergburger queue', type: 'food', image: IMG('photo-1568901346375-23c9450c58cd') },
     { id: 'queenstown-jet', title: 'Shotover Jet', type: 'activity', image: IMG('photo-1506905925346-21bda4d32df4') },
   ],
   rio: [
-    { id: 'rio-christ', title: 'Christ the Redeemer', type: 'attraction', image: IMG('photo-1483729558449-99ef43a52516') },
+    { id: 'rio-christ', title: 'Christ the Redeemer', type: 'attraction', image: PEX(2382608) },
     { id: 'rio-feijoada', title: 'Feijoada Saturday', type: 'food', image: IMG('photo-1544025162-d76694265947') },
-    { id: 'rio-copacabana', title: 'Copacabana beach', type: 'activity', image: IMG('photo-1483729558449-99ef43a52516') },
+    { id: 'rio-copacabana', title: 'Copacabana beach', type: 'activity', image: PEX(1486576) },
     { id: 'rio-samba', title: 'Samba night Lapa', type: 'activity', image: IMG('photo-1514525253161-7a46d19cd819') },
   ],
   cancun: [
@@ -221,8 +225,8 @@ const HIGHLIGHTS: Record<string, DestinationHighlight[]> = {
   athens: [
     { id: 'athens-acropolis', title: 'Acropolis & Parthenon', type: 'attraction', image: IMG('photo-1555993539-1732b0258235') },
     { id: 'athens-gyro', title: 'Souvlaki & gyro', type: 'food', image: IMG('photo-1555939594-58d7cb561ad1') },
-    { id: 'athens-plaka', title: 'Plaka stroll', type: 'activity', image: IMG('photo-1606159068539-43f36b99e004') },
-    { id: 'athens-islands', title: 'Saronic day cruise', type: 'activity', image: IMG('photo-1533105075210-7cb6ba3345f3') },
+    { id: 'athens-plaka', title: 'Plaka stroll', type: 'activity', image: IMG('photo-1555993539-1732b0258235') },
+    { id: 'athens-islands', title: 'Saronic day cruise', type: 'activity', image: PEX(2294403) },
   ],
   copenhagen: [
     { id: 'copenhagen-nyhavn', title: 'Nyhavn harbour', type: 'attraction', image: IMG('photo-1513622470522-26c3c8a854bc') },
@@ -237,9 +241,9 @@ const HIGHLIGHTS: Record<string, DestinationHighlight[]> = {
     { id: 'vancouver-salmon', title: 'Pacific salmon poke', type: 'food', image: IMG('photo-1546069901-ba9599a7e63c') },
   ],
   'bora-bora': [
-    { id: 'bora-snorkel', title: 'Coral garden snorkel', type: 'activity', image: IMG('photo-1589979481226-c96e7d87b7fc') },
+    { id: 'bora-snorkel', title: 'Coral garden snorkel', type: 'activity', image: IMG('photo-1436491865332-7a61a109cc05') },
     { id: 'bora-poisson', title: 'Poisson cru', type: 'food', image: IMG('photo-1546069901-ba9599a7e63c') },
-    { id: 'bora-peak', title: 'Mount Otemanu view', type: 'attraction', image: IMG('photo-1589979481226-c96e7d87b7fc') },
+    { id: 'bora-peak', title: 'Mount Otemanu view', type: 'attraction', image: IMG('photo-1436491865332-7a61a109cc05') },
     { id: 'bora-jet', title: 'Jet ski lagoon', type: 'activity', image: IMG('photo-1507525428034-b723cf961d3e') },
   ],
 };
@@ -251,7 +255,7 @@ function buildGenericHighlights(destinationId: string): DestinationHighlight[] {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ');
   return [
-    { id: `${d}-gen-act`, title: `Outdoor adventures in ${label}`, type: 'activity', image: IMG('photo-1469474968028-338989a2e8c0') },
+    { id: `${d}-gen-act`, title: `Outdoor adventures in ${label}`, type: 'activity', image: IMG('photo-1469474968028-56623f02e42e') },
     { id: `${d}-gen-food`, title: `Local flavours in ${label}`, type: 'food', image: IMG('photo-1546069901-ba9599a7e63c') },
     { id: `${d}-gen-att`, title: `Iconic sights in ${label}`, type: 'attraction', image: IMG('photo-1488646953014-85cb44e25828') },
     { id: `${d}-gen-walk`, title: `Neighbourhood walk — ${label}`, type: 'activity', image: IMG('photo-1501785888041-af3ef285b470') },

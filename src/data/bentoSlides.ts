@@ -38,7 +38,8 @@ export const BENTO_SLIDES: BentoSlide[] = [
       id: 't1',
       title: 'Adriatic cliffs',
       subtitle: 'Dubrovnik, Croatia',
-      image: hq('https://images.unsplash.com/photo-1559827260-dc66d52bef27'),
+      image:
+        'https://images.pexels.com/photos/3568441/pexels-photo-3568441.jpeg?auto=compress&cs=tinysrgb&w=1200',
       layout: 'tall',
       feedbackItemId: 'dubrovnik',
       feedbackItemType: 'destination',
@@ -58,7 +59,8 @@ export const BENTO_SLIDES: BentoSlide[] = [
       id: 't3',
       title: 'Whitewater rafting',
       subtitle: 'Zambezi River',
-      image: hq('https://images.unsplash.com/photo-1598526473742-6eabc5515376'),
+      image:
+        'https://images.pexels.com/photos/31957573/pexels-photo-31957573.jpeg?auto=compress&cs=tinysrgb&w=1200',
       layout: 'small-bl',
       feedbackItemId: 'bento-s1-rafting',
       feedbackItemType: 'highlight',
