@@ -2,37 +2,37 @@
 
 @layer base {
   :root {
-    /* Black and white aesthetic */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 0%;
+    /* Enterprise / product-marketing palette (Giga-inspired: neutral, high contrast) */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 4%;
 
     --muted: 0 0% 96%;
     --muted-foreground: 0 0% 45%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 0%;
+    --popover-foreground: 0 0% 4%;
 
     --border: 0 0% 90%;
     --input: 0 0% 90%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 0%;
+    --card-foreground: 0 0% 4%;
 
-    --primary: 0 0% 0%;
+    --primary: 0 0% 4%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 0%;
+    --secondary-foreground: 0 0% 4%;
 
     --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 0%;
+    --accent-foreground: 0 0% 4%;
 
-    --destructive: 0 100% 50%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --ring: 0 0% 50%;
+    --ring: 0 0% 4%;
 
-    --radius: 0.375rem;
+    --radius: 0.5rem;
   }
 
   .dark {
@@ -83,6 +83,12 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
+    letter-spacing: -0.011em;
+  }
+
+  .dark ::selection {
+    background-color: rgb(255 255 255 / 0.12);
+    color: inherit;
   }
 }
 

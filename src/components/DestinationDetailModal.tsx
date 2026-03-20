@@ -1,10 +1,11 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ThumbsUp, ThumbsDown, Utensils, Mountain, Landmark } from 'lucide-react';
 import {
+  type CarouselApi,
   Carousel,
   CarouselContent,
   CarouselItem,
@@ -13,7 +14,8 @@ import {
 } from '@/components/ui/carousel';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import type { CatalogItem } from '@/components/DestinationCatalog';
+import type { CatalogItem } from '@/data/destinationsCatalog';
+import type { LikeSyncMeta } from '@/lib/catalogLikeSync';
 import { getHighlightsForDestination, type DestinationHighlight, type HighlightType } from '@/data/destinationHighlights';
 
 const typeConfig: Record<HighlightType, { label: string; icon: typeof Utensils }> = {
@@ -26,7 +28,12 @@ interface DestinationDetailModalProps {
   destination: CatalogItem | null;
   onClose: () => void;
   feedbackMap: Record<string, { action: string }>;
-  onRecordFeedback: (itemId: string, itemType: string, action: 'like' | 'dislike') => void;
+  onRecordFeedback: (
+    itemId: string,
+    itemType: string,
+    action: 'like' | 'dislike' | 'clear',
+    meta?: LikeSyncMeta
+  ) => void | Promise<void>;
   isSignedIn: boolean;
 }
 
@@ -37,9 +44,36 @@ export function DestinationDetailModal({
   onRecordFeedback,
   isSignedIn,
 }: DestinationDetailModalProps) {
-  if (!destination) return null;
+  const highlights = destination ? getHighlightsForDestination(destination.id) : [];
+  const [api, setApi] = useState<CarouselApi>();
+  const [currentIndex, setCurrentIndex] = useState(0);
 
-  const highlights = getHighlightsForDestination(destination.id);
+  useEffect(() => {
+    if (!api) return;
+    const updateIndex = () => setCurrentIndex(api.selectedScrollSnap());
+    updateIndex();
+    api.on('select', updateIndex);
+    api.on('reInit', updateIndex);
+
+    return () => {
+      api.off('select', updateIndex);
+      api.off('reInit', updateIndex);
+    };
+  }, [api]);
+
+  useEffect(() => {
+    if (!api || highlights.length <= 1) return;
+    const interval = setInterval(() => api.scrollNext(), 4200);
+    return () => clearInterval(interval);
+  }, [api, highlights.length]);
+
+  useEffect(() => {
+    if (!destination || !api) return;
+    api.scrollTo(0);
+    setCurrentIndex(0);
+  }, [destination, api]);
+
+  if (!destination) return null;
 
   return (
     <AnimatePresence>
@@ -56,54 +90,82 @@ export function DestinationDetailModal({
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ duration: 0.2 }}
-          className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-[#e8e4df] bg-[#faf8f5] shadow-2xl"
+          className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl border border-white/10 bg-neutral-900 shadow-2xl shadow-black/50"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[#e8e4df] bg-[#2c2825] px-6 py-4">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-white/10 bg-neutral-950 px-6 py-4">
             <div>
-              <h2 className="text-2xl font-semibold text-white">{destination.name}</h2>
+              <h2 className="text-xl font-semibold tracking-tight text-white">{destination.name}</h2>
               {destination.region && (
-                <p className="text-sm text-[#e8e4df]">{destination.region}</p>
+                <p className="text-sm text-neutral-400">{destination.region}</p>
               )}
             </div>
             <button
               type="button"
               onClick={onClose}
-              className="p-2 text-[#e8e4df] hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 text-neutral-400 hover:bg-white/10 rounded-lg transition-colors"
               aria-label="Close"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <div className="overflow-y-auto p-6 space-y-6">
-            <p className="text-[#6b6560]">{destination.description}</p>
+          <div className="overflow-y-auto p-6 space-y-6 bg-neutral-900">
+            <p className="text-white/70 text-base md:text-lg">{destination.description}</p>
 
             <div>
-              <h3 className="text-lg font-semibold text-[#2c2825] mb-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/45 mb-2">
+                Highlights
+              </p>
+              <h3 className="text-lg font-semibold tracking-tight text-white mb-3">
                 Best of {destination.name} — activities, food & attractions
               </h3>
               <Carousel
-                opts={{ align: 'start', loop: false }}
+                setApi={setApi}
+                opts={{ align: 'center', loop: true }}
                 className="w-full"
               >
                 <CarouselContent className="-ml-4">
-                  {highlights.map((h) => (
-                    <CarouselItem key={h.id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/3">
+                  {highlights.map((h, index) => (
+                    <CarouselItem key={h.id} className="pl-4 basis-[88%] sm:basis-[65%] lg:basis-[55%]">
                       <HighlightCard
                         highlight={h}
-                        feedback={feedbackMap[h.id] ?? null}
-                        onLike={() => onRecordFeedback(h.id, 'highlight', 'like')}
+                        feedback={feedbackMap[h.id.toLowerCase()] ?? null}
+                        onLike={() => {
+                          if (feedbackMap[h.id.toLowerCase()]?.action === 'like') {
+                            onRecordFeedback(h.id, 'highlight', 'clear');
+                          } else {
+                            onRecordFeedback(h.id, 'highlight', 'like', {
+                              highlightTitle: h.title,
+                              highlightType: h.type,
+                            });
+                          }
+                        }}
                         onDislike={() => onRecordFeedback(h.id, 'highlight', 'dislike')}
                         isSignedIn={isSignedIn}
+                        isCurrent={index === currentIndex}
                       />
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="left-0 -translate-x-2 border-[#e8e4df] bg-[#faf8f5] hover:bg-[#e8e4df]" />
-                <CarouselNext className="right-0 translate-x-2 border-[#e8e4df] bg-[#faf8f5] hover:bg-[#e8e4df]" />
+                <CarouselPrevious className="left-1 md:left-2 border-white/15 bg-neutral-800 text-white hover:bg-neutral-700" />
+                <CarouselNext className="right-1 md:right-2 border-white/15 bg-neutral-800 text-white hover:bg-neutral-700" />
               </Carousel>
+              <div className="mt-4 flex justify-center gap-2">
+                {highlights.map((h, index) => (
+                  <button
+                    key={`${h.id}-dot`}
+                    type="button"
+                    onClick={() => api?.scrollTo(index)}
+                    className={cn(
+                      'h-2 rounded-full transition-all duration-300',
+                      index === currentIndex ? 'w-7 bg-emerald-500' : 'w-2 bg-white/25 hover:bg-white/40'
+                    )}
+                    aria-label={`Go to ${h.title}`}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </motion.div>
@@ -118,25 +180,30 @@ function HighlightCard({
   onLike,
   onDislike,
   isSignedIn,
+  isCurrent,
 }: {
   highlight: DestinationHighlight;
   feedback: { action: string } | null;
   onLike: () => void;
   onDislike: () => void;
   isSignedIn: boolean;
+  isCurrent: boolean;
 }) {
   const { label, icon: Icon } = typeConfig[highlight.type];
   const like = feedback?.action === 'like';
   const dislike = feedback?.action === 'dislike';
 
   return (
-    <Card className="overflow-hidden border-[#e8e4df] bg-white">
+    <Card className={cn(
+      'overflow-hidden border-white/10 bg-neutral-800/80 transition-all duration-500',
+      isCurrent ? 'scale-100 shadow-xl shadow-black/40 ring-1 ring-white/10' : 'scale-[0.92] opacity-90 shadow-lg'
+    )}>
       <div className="relative aspect-[4/3] overflow-hidden">
         <Image
           src={highlight.image}
           alt={highlight.title}
           fill
-          className="object-cover"
+          className={cn('object-cover transition-transform duration-700', isCurrent ? 'scale-100' : 'scale-95')}
           sizes="(max-width: 640px) 100vw, 33vw"
         />
         <span className="absolute top-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/60 text-white text-xs">
@@ -150,11 +217,14 @@ function HighlightCard({
               onClick={(e) => { e.stopPropagation(); onLike(); }}
               className={cn(
                 'p-1.5 rounded-lg transition-colors',
-                like ? 'bg-green-600 text-white' : 'bg-white/90 text-neutral-600 hover:bg-green-100'
+                like
+                  ? 'bg-emerald-600 text-white ring-2 ring-emerald-400/70 shadow-md'
+                  : 'bg-white/95 text-neutral-800 hover:bg-white'
               )}
-              aria-label="Like"
+              aria-pressed={like}
+              aria-label={like ? 'Remove like' : 'Like'}
             >
-              <ThumbsUp className="w-4 h-4" />
+              <ThumbsUp className={cn('w-4 h-4', like && 'fill-current')} />
             </button>
             <button
               type="button"
@@ -171,7 +241,7 @@ function HighlightCard({
         )}
       </div>
       <CardContent className="p-3">
-        <p className="font-medium text-[#2c2825] text-sm">{highlight.title}</p>
+        <p className="font-medium text-white text-sm">{highlight.title}</p>
       </CardContent>
     </Card>
   );

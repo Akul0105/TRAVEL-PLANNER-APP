@@ -23,6 +23,10 @@ export function SearchBar({
   isLoading,
   showSuggestions,
   onSuggestionClick,
+  variant = 'dark',
+  className,
+  showPopularPills = true,
+  dense = false,
 }: SearchBarProps) {
   const [inputValue, setInputValue] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -64,12 +68,19 @@ export function SearchBar({
     }
   };
 
+  const isDark = variant === 'dark';
+
   return (
-    <div className="relative w-full max-w-2xl mx-auto">
+    <div className={cn('relative w-full max-w-2xl mx-auto', className)}>
       {/* Search Input */}
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-500" />
+          <Search
+            className={cn(
+              'absolute top-1/2 -translate-y-1/2 text-neutral-500',
+              dense ? 'left-3 h-4 w-4' : 'left-4 h-5 w-5'
+            )}
+          />
           <input
             ref={inputRef}
             type="text"
@@ -80,17 +91,22 @@ export function SearchBar({
             onKeyDown={handleKeyDown}
             placeholder="Search for destinations, hotels, flights, packages..."
             className={cn(
-              "w-full h-14 pl-12 pr-16 rounded-lg border text-base",
-              "bg-white/95 backdrop-blur text-black placeholder-neutral-500",
+              'w-full rounded-lg border text-base',
+              dense ? 'h-11 pl-10 pr-14 text-sm' : 'h-14 pl-12 pr-16',
+              "backdrop-blur text-black placeholder-neutral-500",
               "transition-all duration-200",
-              "focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/50",
-              isFocused ? "border-white/40" : "border-white/30 hover:border-white/50"
+              isDark
+                ? "bg-white/95 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/50"
+                : "bg-white focus:outline-none focus:ring-2 focus:ring-neutral-950/10 focus:border-neutral-950/25",
+              isDark
+                ? (isFocused ? "border-white/40" : "border-white/30 hover:border-white/50")
+                : (isFocused ? "border-neutral-950/25" : "border-neutral-200 hover:border-neutral-300")
             )}
           />
           
           {isLoading && (
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-              <Loader2 className="w-5 h-5 text-white animate-spin" />
+            <div className={cn('absolute top-1/2 -translate-y-1/2', dense ? 'right-3' : 'right-4')}>
+              <Loader2 className={cn(dense ? 'h-4 w-4' : 'h-5 w-5', 'animate-spin', isDark ? 'text-white' : 'text-neutral-950')} />
             </div>
           )}
         </div>
@@ -136,9 +152,9 @@ export function SearchBar({
       </AnimatePresence>
 
       {/* Popular Searches */}
-      {!isFocused && inputValue === '' && (
+      {showPopularPills && !isFocused && inputValue === '' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-5 text-center">
-          <p className="text-base text-white/80 mb-3">Popular searches</p>
+          <p className={cn('text-sm font-medium mb-3', isDark ? 'text-white/80' : 'text-neutral-600')}>Popular searches</p>
           <div className="flex flex-wrap gap-2.5 justify-center">
             {['Paris', 'Tokyo', 'Bali', 'New York', 'London'].map((term) => (
               <button
@@ -146,7 +162,12 @@ export function SearchBar({
                 onClick={() => {
                   handleSuggestionClick({ id: term.toLowerCase().replace(' ', '-'), text: term, type: 'destination', popularity: 85 });
                 }}
-                className="px-4 py-2 text-base bg-white/20 hover:bg-white/30 text-white rounded-full transition-colors"
+                className={cn(
+                  'px-4 py-2 text-sm rounded-full transition-colors font-medium',
+                  isDark
+                    ? 'bg-white/20 hover:bg-white/30 text-white'
+                    : 'bg-neutral-950/[0.06] hover:bg-neutral-950/10 text-neutral-950'
+                )}
               >
                 {term}
               </button>

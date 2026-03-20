@@ -210,33 +210,33 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
           exit={{ opacity: 0, scale: 0.8, y: 20 }}
           transition={{ duration: 0.3 }}
           className={cn(
-            'fixed bottom-24 right-6 bg-[#faf8f5] rounded-2xl shadow-2xl border border-[#e8e4df] z-50 flex flex-col',
+            'fixed bottom-24 right-6 bg-neutral-50 rounded-2xl shadow-2xl border border-neutral-200 shadow-black/10 z-50 flex flex-col',
             isExpanded ? 'w-screen h-screen bottom-0 right-0 rounded-none' : 'w-96 h-[600px]'
           )}
         >
-          <div className="flex items-center justify-between p-4 border-b border-[#e8e4df] bg-[#2c2825] rounded-t-2xl">
+          <div className="flex items-center justify-between p-4 border-b border-neutral-200 bg-neutral-950 rounded-t-2xl">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center">
-                <Bot className="w-5 h-5 text-[#2c2825]" />
+              <div className="w-8 h-8 bg-white/15 rounded-full flex items-center justify-center">
+                <Bot className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h3 className="font-semibold text-white">Travel Assistant</h3>
-                <p className="text-[#e8e4df] text-xs">
+                <h3 className="font-semibold text-white tracking-tight text-sm">Travel Assistant</h3>
+                <p className="text-neutral-400 text-xs">
                   {chatSubtitle}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={clearMessages} className="p-1 text-[#e8e4df] hover:bg-white/10 rounded-lg" title="Clear chat">
+              <button onClick={clearMessages} className="p-1 text-neutral-400 hover:bg-white/10 rounded-lg" title="Clear chat">
                 <Trash2 className="w-4 h-4" />
               </button>
-              <button onClick={() => setIsExpanded((prev) => !prev)} className="p-1 text-[#e8e4df] hover:bg-white/10 rounded-lg" title={isExpanded ? 'Exit fullscreen' : 'Fullscreen'}>
+              <button onClick={() => setIsExpanded((prev) => !prev)} className="p-1 text-neutral-400 hover:bg-white/10 rounded-lg" title={isExpanded ? 'Exit fullscreen' : 'Fullscreen'}>
                 {isExpanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#faf8f5]">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50">
             {messages.map((message) => (
               <motion.div
                 key={message.id}
@@ -246,25 +246,25 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 className={cn('flex gap-3', message.role === 'user' ? 'justify-end' : 'justify-start')}
               >
                 {message.role === 'assistant' && (
-                  <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center flex-shrink-0">
-                    <Bot className="w-4 h-4 text-[#2c2825]" />
+                  <div className="w-8 h-8 bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4 text-neutral-950" />
                   </div>
                 )}
                 <div
                   className={cn(
                     'max-w-[80%] rounded-2xl px-4 py-3',
-                    message.role === 'user' ? 'bg-[#2c2825] text-white' : 'bg-white text-[#2c2825] border border-[#e8e4df]'
+                    message.role === 'user' ? 'bg-neutral-950 text-white' : 'bg-white text-neutral-950 border border-neutral-200'
                   )}
                 >
                   <ReactMarkdown>{message.content}</ReactMarkdown>
                   {message.role === 'assistant' && message.suggestions && (message.suggestions.destinations?.length > 0 || message.suggestions.activities?.length > 0) && (
-                    <div className="mt-3 pt-3 border-t border-[#e8e4df] flex flex-wrap gap-2">
+                    <div className="mt-3 pt-3 border-t border-neutral-200 flex flex-wrap gap-2">
                       {message.suggestions.destinations?.map((name) => (
                         <button
                           key={`dest-${name}`}
                           type="button"
                           onClick={() => addToBucketList(name)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#2c2825] text-white text-xs hover:bg-[#4a4541]"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-950 text-white text-xs font-medium hover:bg-neutral-800"
                         >
                           <Plus className="w-3 h-3" /> Add {name} to bucket list
                         </button>
@@ -274,34 +274,34 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                           key={`act-${name}`}
                           type="button"
                           onClick={() => addToActivities(name)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#6b6560] text-white text-xs hover:bg-[#4a4541]"
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-700 text-white text-xs font-medium hover:bg-neutral-600"
                         >
                           <Plus className="w-3 h-3" /> Add {name} to activities
                         </button>
                       ))}
                     </div>
                   )}
-                  <p className={cn('text-xs mt-1', message.role === 'user' ? 'text-[#e8e4df]' : 'text-[#6b6560]')}>
+                  <p className={cn('text-xs mt-1', message.role === 'user' ? 'text-neutral-400' : 'text-neutral-500')}>
                     {formatTime(message.timestamp)}
                   </p>
                 </div>
                 {message.role === 'user' && (
-                  <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="w-4 h-4 text-[#2c2825]" />
+                  <div className="w-8 h-8 bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0">
+                    <User className="w-4 h-4 text-neutral-950" />
                   </div>
                 )}
               </motion.div>
             ))}
             {isLoading && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3 justify-start">
-                <div className="w-8 h-8 bg-[#e8e4df] rounded-full flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 text-[#2c2825]" />
+                <div className="w-8 h-8 bg-neutral-200 rounded-full flex items-center justify-center flex-shrink-0">
+                  <Bot className="w-4 h-4 text-neutral-950" />
                 </div>
-                <div className="bg-white rounded-2xl px-4 py-3 border border-[#e8e4df]">
+                <div className="bg-white rounded-2xl px-4 py-3 border border-neutral-200">
                   <div className="flex gap-1">
-                    <div className="w-2 h-2 bg-[#6b6560] rounded-full animate-bounce" />
-                    <div className="w-2 h-2 bg-[#6b6560] rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                    <div className="w-2 h-2 bg-[#6b6560] rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                    <div className="w-2 h-2 bg-neutral-500 rounded-full animate-bounce" />
+                    <div className="w-2 h-2 bg-neutral-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                    <div className="w-2 h-2 bg-neutral-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                   </div>
                 </div>
               </motion.div>
@@ -309,7 +309,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
             <div ref={messagesEndRef} />
           </div>
 
-          <form onSubmit={handleSendMessage} className="p-4 border-t border-[#e8e4df] bg-white">
+          <form onSubmit={handleSendMessage} className="p-4 border-t border-neutral-200 bg-white">
             <div className="flex gap-2">
               <input
                 ref={inputRef}
@@ -319,8 +319,8 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 disabled={phase === 'signed_out' || isLoading}
                 placeholder={phase === 'signed_out' ? 'Sign in to chat...' : 'Ask about destinations, Scrapbook, or bundles...'}
                 className={cn(
-                  'flex-1 px-4 py-3 rounded-xl border border-[#e8e4df] bg-[#faf8f5] text-[#2c2825] placeholder:text-[#9c958f]',
-                  'focus:outline-none focus:ring-2 focus:ring-[#2c2825] focus:border-[#2c2825]',
+                  'flex-1 px-4 py-3 rounded-xl border border-neutral-200 bg-neutral-50 text-neutral-950 placeholder:text-neutral-400',
+                  'focus:outline-none focus:ring-2 focus:ring-neutral-950/15 focus:border-neutral-950',
                   'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
               />
@@ -328,7 +328,7 @@ export function Chatbot({ isOpen, onToggle, onClose }: ChatbotProps) {
                 type="submit"
                 disabled={phase === 'signed_out' || !inputValue.trim() || isLoading}
                 className={cn(
-                  'px-4 py-3 bg-[#2c2825] text-white rounded-xl hover:bg-[#4a4541] disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center'
+                  'px-4 py-3 bg-neutral-950 text-white rounded-xl hover:bg-neutral-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center'
                 )}
               >
                 <Send className="w-5 h-5" />

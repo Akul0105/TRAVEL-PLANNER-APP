@@ -139,13 +139,13 @@ export function MBASequentialAnalysis({ title, subtitle }: MBASequentialAnalysis
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl shadow-xl p-6">
+      <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm shadow-black/[0.04] p-6">
         <div className="animate-pulse">
-          <div className="h-6 bg-gray-200 rounded mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded mb-6"></div>
+          <div className="h-6 bg-neutral-200 rounded mb-4"></div>
+          <div className="h-4 bg-neutral-200 rounded mb-6"></div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded-lg"></div>
+              <div key={i} className="h-32 bg-neutral-200 rounded-lg"></div>
             ))}
           </div>
         </div>
@@ -154,57 +154,57 @@ export function MBASequentialAnalysis({ title, subtitle }: MBASequentialAnalysis
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6">
+    <div className="bg-white rounded-2xl border border-neutral-200 shadow-sm shadow-black/[0.04] p-6">
       <FadeInText className="mb-6">
-        <h3 className="text-2xl font-bold text-gray-900 mb-2">{title}</h3>
-        <p className="text-gray-600">{subtitle}</p>
+        <h3 className="text-2xl font-bold text-neutral-950 mb-2">{title}</h3>
+        <p className="text-neutral-600">{subtitle}</p>
       </FadeInText>
 
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-blue-50 rounded-lg p-4">
+        <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-blue-600 font-medium">Total Sequences</p>
-              <p className="text-2xl font-bold text-blue-900">{sequences.length}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Total sequences</p>
+              <p className="text-2xl font-bold text-neutral-950">{sequences.length}</p>
             </div>
-            <TrendingUp className="w-8 h-8 text-blue-500" />
+            <TrendingUp className="w-8 h-8 text-neutral-400" />
           </div>
         </div>
         
-        <div className="bg-green-50 rounded-lg p-4">
+        <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-green-600 font-medium">Avg Success Rate</p>
-              <p className="text-2xl font-bold text-green-900">
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Avg success rate</p>
+              <p className="text-2xl font-bold text-neutral-950">
                 {(sequences.reduce((sum, seq) => sum + seq.successRate, 0) / sequences.length * 100).toFixed(0)}%
               </p>
             </div>
-            <Users className="w-8 h-8 text-green-500" />
+            <Users className="w-8 h-8 text-neutral-400" />
           </div>
         </div>
         
-        <div className="bg-purple-50 rounded-lg p-4">
+        <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-purple-600 font-medium">Avg Duration</p>
-              <p className="text-2xl font-bold text-purple-900">
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Avg duration</p>
+              <p className="text-2xl font-bold text-neutral-950">
                 {Math.round(sequences.reduce((sum, seq) => sum + seq.avgDuration, 0) / sequences.length)} days
               </p>
             </div>
-            <Clock className="w-8 h-8 text-purple-500" />
+            <Clock className="w-8 h-8 text-neutral-400" />
           </div>
         </div>
         
-        <div className="bg-orange-50 rounded-lg p-4">
+        <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-orange-600 font-medium">Total Bookings</p>
-              <p className="text-2xl font-bold text-orange-900">
+              <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Total bookings</p>
+              <p className="text-2xl font-bold text-neutral-950">
                 {sequences.reduce((sum, seq) => sum + seq.frequency, 0)}
               </p>
             </div>
-            <Calendar className="w-8 h-8 text-orange-500" />
+            <Calendar className="w-8 h-8 text-neutral-400" />
           </div>
         </div>
       </div>
@@ -215,26 +215,26 @@ export function MBASequentialAnalysis({ title, subtitle }: MBASequentialAnalysis
           <AnimatedCard
             key={sequence.id}
             delay={index * 0.1}
-            className="p-6 border border-gray-200 rounded-xl hover:shadow-lg transition-all duration-300 cursor-pointer group"
+            className="p-6 border border-neutral-200 rounded-xl hover:shadow-lg transition-all duration-300 cursor-pointer group"
             onClick={() => setSelectedSequence(sequence)}
           >
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h4 className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                <h4 className="text-xl font-bold text-neutral-950 group-hover:text-neutral-700 transition-colors">
                   {sequence.name}
                 </h4>
-                <p className="text-sm text-gray-600">{sequence.customerSegment}</p>
+                <p className="text-sm text-neutral-600">{sequence.customerSegment}</p>
               </div>
               <div className="text-right">
                 <div className="flex items-center space-x-2 mb-1">
-                  <Users className="w-4 h-4 text-blue-500" />
-                  <span className="text-sm font-medium text-gray-700">
+                  <Users className="w-4 h-4 text-neutral-500" />
+                  <span className="text-sm font-medium text-neutral-700">
                     {sequence.frequency} bookings
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <TrendingUp className="w-4 h-4 text-green-500" />
-                  <span className="text-sm text-green-600">
+                  <TrendingUp className="w-4 h-4 text-neutral-500" />
+                  <span className="text-sm text-neutral-600">
                     {(sequence.successRate * 100).toFixed(0)}% success
                   </span>
                 </div>
@@ -245,12 +245,12 @@ export function MBASequentialAnalysis({ title, subtitle }: MBASequentialAnalysis
             <div className="space-y-2 mb-4">
               {sequence.steps.map((step, stepIndex) => (
                 <div key={stepIndex} className="flex items-center space-x-3">
-                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <span className="text-xs font-bold text-blue-600">{stepIndex + 1}</span>
+                  <div className="w-6 h-6 bg-neutral-100 border border-neutral-200 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-xs font-bold text-neutral-950">{stepIndex + 1}</span>
                   </div>
-                  <span className="text-sm text-gray-700">{step}</span>
+                  <span className="text-sm text-neutral-700">{step}</span>
                   {stepIndex < sequence.steps.length - 1 && (
-                    <ArrowRight className="w-3 h-3 text-gray-400 ml-auto" />
+                    <ArrowRight className="w-3 h-3 text-neutral-400 ml-auto" />
                   )}
                 </div>
               ))}
@@ -258,24 +258,24 @@ export function MBASequentialAnalysis({ title, subtitle }: MBASequentialAnalysis
 
             {/* Sequence Stats */}
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-600 font-medium">Support</p>
-                <p className="text-lg font-bold text-blue-900">
+              <div className="text-center p-3 bg-neutral-50 rounded-xl border border-neutral-200">
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Support</p>
+                <p className="text-lg font-bold text-neutral-950">
                   {(sequence.support * 100).toFixed(1)}%
                 </p>
               </div>
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <p className="text-sm text-green-600 font-medium">Duration</p>
-                <p className="text-lg font-bold text-green-900">
+              <div className="text-center p-3 bg-neutral-50 rounded-xl border border-neutral-200">
+                <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500">Duration</p>
+                <p className="text-lg font-bold text-neutral-950">
                   {sequence.avgDuration} days
                 </p>
               </div>
             </div>
 
             {/* Seasonal Pattern */}
-            <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-              <Calendar className="w-4 h-4 text-gray-500" />
-              <span className="text-sm text-gray-600">
+            <div className="flex items-center space-x-2 p-3 bg-neutral-50 rounded-lg">
+              <Calendar className="w-4 h-4 text-neutral-500" />
+              <span className="text-sm text-neutral-600">
                 <strong>Peak Season:</strong> {sequence.seasonalPattern}
               </span>
             </div>
@@ -286,12 +286,12 @@ export function MBASequentialAnalysis({ title, subtitle }: MBASequentialAnalysis
       {/* Sequence Detail Modal */}
       {selectedSequence && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl border border-neutral-200 p-6 max-w-4xl w-full max-h-[80vh] overflow-y-auto shadow-xl shadow-black/10">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-2xl font-bold text-gray-900">{selectedSequence.name}</h3>
+              <h3 className="text-2xl font-bold text-neutral-950">{selectedSequence.name}</h3>
               <button
                 onClick={() => setSelectedSequence(null)}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-neutral-400 hover:text-neutral-600"
               >
                 ✕
               </button>
@@ -299,56 +299,56 @@ export function MBASequentialAnalysis({ title, subtitle }: MBASequentialAnalysis
             
             {/* Detailed Analytics */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="font-semibold text-blue-900 mb-2">Booking Statistics</h4>
+              <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
+                <h4 className="font-semibold text-neutral-950 mb-2">Booking statistics</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-blue-700">Total Bookings:</span>
-                    <span className="font-medium">{selectedSequence.frequency}</span>
+                    <span className="text-sm text-neutral-600">Total bookings:</span>
+                    <span className="font-medium text-neutral-950">{selectedSequence.frequency}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-blue-700">Support:</span>
-                    <span className="font-medium">{(selectedSequence.support * 100).toFixed(1)}%</span>
+                    <span className="text-sm text-neutral-600">Support:</span>
+                    <span className="font-medium text-neutral-950">{(selectedSequence.support * 100).toFixed(1)}%</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-blue-700">Success Rate:</span>
-                    <span className="font-medium">{(selectedSequence.successRate * 100).toFixed(0)}%</span>
+                    <span className="text-sm text-neutral-600">Success rate:</span>
+                    <span className="font-medium text-neutral-950">{(selectedSequence.successRate * 100).toFixed(0)}%</span>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-green-50 rounded-lg p-4">
-                <h4 className="font-semibold text-green-900 mb-2">Travel Details</h4>
+              <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
+                <h4 className="font-semibold text-neutral-950 mb-2">Travel details</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-green-700">Avg Duration:</span>
-                    <span className="font-medium">{selectedSequence.avgDuration} days</span>
+                    <span className="text-sm text-neutral-600">Avg duration:</span>
+                    <span className="font-medium text-neutral-950">{selectedSequence.avgDuration} days</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-green-700">Steps:</span>
-                    <span className="font-medium">{selectedSequence.steps.length}</span>
+                    <span className="text-sm text-neutral-600">Steps:</span>
+                    <span className="font-medium text-neutral-950">{selectedSequence.steps.length}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-green-700">Segment:</span>
-                    <span className="font-medium">{selectedSequence.customerSegment}</span>
+                    <span className="text-sm text-neutral-600">Segment:</span>
+                    <span className="font-medium text-neutral-950">{selectedSequence.customerSegment}</span>
                   </div>
                 </div>
               </div>
               
-              <div className="bg-purple-50 rounded-lg p-4">
-                <h4 className="font-semibold text-purple-900 mb-2">Seasonal Pattern</h4>
+              <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
+                <h4 className="font-semibold text-neutral-950 mb-2">Seasonal pattern</h4>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span className="text-sm text-purple-700">Peak Season:</span>
-                    <span className="font-medium">{selectedSequence.seasonalPattern}</span>
+                    <span className="text-sm text-neutral-600">Peak season:</span>
+                    <span className="font-medium text-neutral-950">{selectedSequence.seasonalPattern}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-purple-700">Demand Level:</span>
-                    <span className="font-medium">High</span>
+                    <span className="text-sm text-neutral-600">Demand level:</span>
+                    <span className="font-medium text-neutral-950">High</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-sm text-purple-700">Booking Window:</span>
-                    <span className="font-medium">2-4 weeks</span>
+                    <span className="text-sm text-neutral-600">Booking window:</span>
+                    <span className="font-medium text-neutral-950">2-4 weeks</span>
                   </div>
                 </div>
               </div>
@@ -356,23 +356,23 @@ export function MBASequentialAnalysis({ title, subtitle }: MBASequentialAnalysis
 
             {/* Step-by-Step Timeline */}
             <div className="mb-8">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Travel Timeline</h4>
+              <h4 className="text-lg font-semibold text-neutral-950 mb-4">Travel Timeline</h4>
               <div className="space-y-4">
                 {selectedSequence.steps.map((step, index) => (
                   <div key={index} className="flex items-center space-x-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-sm font-bold text-blue-600">{index + 1}</span>
+                    <div className="w-10 h-10 bg-neutral-100 border border-neutral-200 rounded-full flex items-center justify-center flex-shrink-0">
+                      <span className="text-sm font-bold text-neutral-950">{index + 1}</span>
                     </div>
                     <div className="flex-1">
-                      <p className="font-medium text-gray-900">{step}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="font-medium text-neutral-950">{step}</p>
+                      <p className="text-sm text-neutral-600">
                         {index === 0 ? 'Initial booking' : 
                          index === selectedSequence.steps.length - 1 ? 'Final experience' :
                          'Mid-trip activity'}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-neutral-500">
                         Day {index + 1}
                       </p>
                     </div>
@@ -382,9 +382,9 @@ export function MBASequentialAnalysis({ title, subtitle }: MBASequentialAnalysis
             </div>
 
             {/* MBA Insights */}
-            <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="font-semibold text-gray-900 mb-2">MBA Insights</h4>
-              <p className="text-sm text-gray-600">
+            <div className="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
+              <h4 className="font-semibold text-neutral-950 mb-2">MBA insights</h4>
+              <p className="text-sm text-neutral-600">
                 This sequence has a <strong>{selectedSequence.support * 100}%</strong> support rate, 
                 meaning it appears in <strong>{selectedSequence.frequency}</strong> successful bookings. 
                 The <strong>{(selectedSequence.successRate * 100).toFixed(0)}%</strong> success rate indicates 
@@ -396,13 +396,14 @@ export function MBASequentialAnalysis({ title, subtitle }: MBASequentialAnalysis
 
             <div className="mt-6 flex space-x-3">
               <button
+                type="button"
                 onClick={() => setSelectedSequence(null)}
-                className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                className="flex-1 bg-neutral-100 text-neutral-950 border border-neutral-200 px-4 py-2.5 rounded-full text-sm font-medium hover:bg-neutral-200 transition-colors"
               >
                 Close
               </button>
-              <button className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors">
-                Use This Pattern
+              <button type="button" className="flex-1 bg-neutral-950 text-white px-4 py-2.5 rounded-full text-sm font-semibold hover:bg-neutral-800 transition-colors">
+                Use this pattern
               </button>
             </div>
           </div>

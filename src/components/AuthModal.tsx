@@ -68,16 +68,16 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
             transition={{ duration: 0.2 }}
             className="fixed left-1/2 top-1/2 z-[101] w-full max-w-md -translate-x-1/2 -translate-y-1/2 px-4"
           >
-            <div className="rounded-2xl border border-[#e8e4df] bg-[#faf8f5] shadow-2xl">
+            <div className="rounded-2xl border border-neutral-200 bg-white shadow-2xl shadow-black/10">
               {/* Header */}
-              <div className="flex items-center justify-between border-b border-[#e8e4df] bg-[#2c2825] px-6 py-4 rounded-t-2xl">
-                <h2 id="auth-modal-title" className="text-lg font-semibold text-white">
+              <div className="flex items-center justify-between border-b border-neutral-200 bg-neutral-950 px-6 py-4 rounded-t-2xl">
+                <h2 id="auth-modal-title" className="text-base font-semibold tracking-tight text-white">
                   Sign in
                 </h2>
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="p-1.5 text-[#e8e4df] hover:bg-white/10 rounded-lg transition-colors"
+                  className="p-1.5 text-neutral-400 hover:bg-white/10 rounded-lg transition-colors"
                   aria-label="Close"
                 >
                   <X className="w-5 h-5" />
@@ -87,17 +87,17 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <div className="p-6">
                 {status === 'success' ? (
                   <div className="flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-[#e8e4df] flex items-center justify-center mb-4">
-                      <CheckCircle className="w-7 h-7 text-[#2c2825]" />
+                    <div className="w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
+                      <CheckCircle className="w-7 h-7 text-neutral-950" />
                     </div>
-                    <p className="text-[#2c2825] font-medium mb-1">Check your email</p>
-                    <p className="text-[#6b6560] text-sm">
+                    <p className="text-neutral-950 font-medium mb-1">Check your email</p>
+                    <p className="text-neutral-600 text-sm">
                       We&apos;ve sent you a sign-in link. Click the link to sign in, then you can use the chatbot and Scrapbook.
                     </p>
                   </div>
                 ) : (
                   <>
-                    <p className="text-[#6b6560] text-sm mb-4">
+                    <p className="text-neutral-600 text-sm mb-4">
                       Enter your email and we&apos;ll send you a sign-in link. No password needed.
                     </p>
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -106,7 +106,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                           Email address
                         </label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-[#9c958f]" />
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
                           <input
                             id="auth-email"
                             type="email"
@@ -119,10 +119,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                             disabled={status === 'loading'}
                             autoComplete="email"
                             className={cn(
-                              'w-full pl-10 pr-4 py-3 rounded-xl border bg-white text-[#2c2825] placeholder:text-[#9c958f]',
-                              'focus:outline-none focus:ring-2 focus:ring-[#2c2825] focus:border-[#2c2825]',
+                              'w-full pl-10 pr-4 py-3 rounded-xl border bg-neutral-50 text-neutral-950 placeholder:text-neutral-400',
+                              'focus:outline-none focus:ring-2 focus:ring-neutral-950/15 focus:border-neutral-950',
                               'disabled:opacity-50 disabled:cursor-not-allowed',
-                              errorMessage ? 'border-red-400' : 'border-[#e8e4df]'
+                              errorMessage ? 'border-red-400' : 'border-neutral-200'
                             )}
                           />
                         </div>
@@ -134,8 +134,8 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         type="submit"
                         disabled={status === 'loading'}
                         className={cn(
-                          'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium',
-                          'bg-[#2c2825] text-white hover:bg-[#4a4541]',
+                          'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-full text-sm font-semibold',
+                          'bg-neutral-950 text-white hover:bg-neutral-800',
                           'disabled:opacity-50 disabled:cursor-not-allowed transition-colors'
                         )}
                       >

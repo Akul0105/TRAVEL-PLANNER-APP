@@ -95,6 +95,12 @@ export interface SearchBarProps {
   isLoading: boolean;
   showSuggestions: boolean;
   onSuggestionClick: (suggestion: SearchSuggestion) => void;
+  variant?: 'dark' | 'light';
+  className?: string;
+  /** When false, hides the “Popular searches” pill row (search input + suggestions unchanged). */
+  showPopularPills?: boolean;
+  /** Shorter input for compact headers (e.g. destinations section). */
+  dense?: boolean;
 }
 
 export interface FloatingChatIconProps {

@@ -16,13 +16,13 @@ export function MagicButton({
   className = '',
   ...props 
 }: MagicButtonProps) {
-  const baseClasses = 'relative overflow-hidden rounded-xl font-semibold transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-blue-200 disabled:opacity-50 disabled:cursor-not-allowed';
+  const baseClasses = 'relative overflow-hidden rounded-full font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-neutral-950/20 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   
   const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg hover:shadow-xl',
-    secondary: 'bg-gray-200 text-gray-800 hover:bg-gray-300',
-    travel: 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-lg hover:shadow-xl',
-    gradient: 'bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 text-white shadow-lg hover:shadow-xl'
+    primary: 'bg-neutral-950 text-white hover:bg-neutral-800 shadow-md shadow-black/10',
+    secondary: 'bg-neutral-100 text-neutral-950 border border-neutral-200 hover:bg-neutral-200',
+    travel: 'bg-neutral-950 text-white hover:bg-neutral-800 shadow-md',
+    gradient: 'bg-neutral-950 text-white hover:bg-neutral-800 shadow-md'
   };
   
   const sizeClasses = {
@@ -36,7 +36,7 @@ export function MagicButton({
       className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
       {...props}
     >
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
       <span className="relative z-10">{children}</span>
     </button>
   );

@@ -9,7 +9,7 @@ interface AnimatedGradientTextProps {
 
 export function AnimatedGradientText({ children, className = '' }: AnimatedGradientTextProps) {
   return (
-    <span className={`bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600 bg-[length:200%_auto] bg-clip-text text-transparent animate-gradient-x font-bold ${className}`}>
+    <span className={`bg-gradient-to-r from-neutral-500 via-neutral-950 to-neutral-500 bg-[length:200%_auto] bg-clip-text text-transparent animate-gradient-x font-semibold tracking-tight ${className}`}>
       {children}
     </span>
   );
@@ -17,7 +17,7 @@ export function AnimatedGradientText({ children, className = '' }: AnimatedGradi
 
 export function TravelGradientText({ children, className = '' }: AnimatedGradientTextProps) {
   return (
-    <span className={`bg-gradient-to-r from-emerald-500 via-blue-500 to-purple-500 bg-[length:200%_auto] bg-clip-text text-transparent animate-gradient-x font-bold ${className}`}>
+    <span className={`font-semibold tracking-tight text-neutral-950 ${className}`}>
       {children}
     </span>
   );

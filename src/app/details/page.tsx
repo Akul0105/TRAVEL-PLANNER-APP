@@ -2,7 +2,7 @@
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { ArrowLeft, MapPin, Plane, Hotel, Package, Activity, Star, Clock, DollarSign, Calendar } from 'lucide-react';
-import { AnimatedGradientText, FadeInText } from '@/components/ui';
+import { FadeInText } from '@/components/ui';
 
 interface DetailInfo {
   title: string;
@@ -372,10 +372,10 @@ export default function DetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading details...</p>
+          <div className="animate-spin rounded-full h-11 w-11 border-2 border-neutral-200 border-t-neutral-950 mx-auto mb-4" />
+          <p className="text-neutral-600 text-sm">Loading details...</p>
         </div>
       </div>
     );
@@ -383,12 +383,13 @@ export default function DetailsPage() {
 
   if (!detailInfo) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-red-500 mb-4">No information found.</p>
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <p className="text-neutral-950 font-medium mb-2">No information found.</p>
           <button
+            type="button"
             onClick={() => router.push('/')}
-            className="text-blue-600 hover:text-blue-700"
+            className="text-sm text-neutral-600 hover:text-neutral-950 underline underline-offset-4"
           >
             Go back to home
           </button>
@@ -414,11 +415,12 @@ export default function DetailsPage() {
         }
       `}} />
       {/* Header */}
-      <div className="bg-white/90 backdrop-blur-sm shadow-sm absolute top-0 left-0 right-0 z-30">
+      <div className="bg-neutral-50/90 backdrop-blur-md border-b border-neutral-200/80 absolute top-0 left-0 right-0 z-30">
         <div className="container mx-auto px-4 py-4">
           <button
+            type="button"
             onClick={() => router.back()}
-            className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
+            className="flex items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-950 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
             <span>Back</span>
@@ -484,9 +486,7 @@ export default function DetailsPage() {
               </video>
             )}
             {/* Elegant gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60"></div>
-            {/* Subtle color tint for depth */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-purple-900/20"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/65" />
           </div>
         ) : detailInfo.image ? (
           <div className="absolute inset-0 z-0 overflow-hidden">
@@ -504,20 +504,20 @@ export default function DetailsPage() {
               }}
             />
             {/* Elegant gradient overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60"></div>
-            {/* Subtle color tint for depth */}
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-transparent to-purple-900/20"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/65" />
           </div>
         ) : (
-          // Fallback gradient if no video or image
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-emerald-600"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-neutral-800 via-neutral-900 to-neutral-950" />
         )}
         
         {/* Content */}
         <div className="relative z-10 container mx-auto px-4 py-20">
           <FadeInText className="text-center">
             {/* Title - smaller and more elegant */}
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-semibold text-white drop-shadow-lg tracking-wide">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-white/70 mb-4">
+              Destination
+            </p>
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-semibold text-white drop-shadow-md tracking-[-0.03em] leading-tight">
               {detailInfo.title}
             </h1>
           </FadeInText>
@@ -528,49 +528,49 @@ export default function DetailsPage() {
       </section>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-12 relative z-10">
+      <div className="container mx-auto px-4 py-12 relative z-10 bg-neutral-50">
         <div className="max-w-6xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-8">
               {/* Key Information */}
-              <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-white/20">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Overview</h2>
+              <div className="bg-white rounded-2xl shadow-sm shadow-black/[0.04] p-6 md:p-8 border border-neutral-200">
+                <h2 className="text-xl font-semibold tracking-tight text-neutral-950 mb-6">Overview</h2>
                 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                   {detailInfo.rating && (
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <Star className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Rating</p>
-                      <p className="text-xl font-bold text-gray-900">{detailInfo.rating}</p>
+                    <div className="text-center p-4 bg-neutral-100 rounded-xl border border-neutral-200/80">
+                      <Star className="w-6 h-6 text-neutral-700 mx-auto mb-2" />
+                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">Rating</p>
+                      <p className="text-xl font-semibold text-neutral-950">{detailInfo.rating}</p>
                     </div>
                   )}
                   {detailInfo.duration && (
-                    <div className="text-center p-4 bg-purple-50 rounded-lg">
-                      <Clock className="w-6 h-6 text-purple-500 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Duration</p>
-                      <p className="text-xl font-bold text-gray-900">{detailInfo.duration}</p>
+                    <div className="text-center p-4 bg-neutral-100 rounded-xl border border-neutral-200/80">
+                      <Clock className="w-6 h-6 text-neutral-700 mx-auto mb-2" />
+                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">Duration</p>
+                      <p className="text-xl font-semibold text-neutral-950">{detailInfo.duration}</p>
                     </div>
                   )}
                   {detailInfo.price && (
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <DollarSign className="w-6 h-6 text-green-500 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Price</p>
-                      <p className="text-xl font-bold text-gray-900">{detailInfo.price}</p>
+                    <div className="text-center p-4 bg-neutral-100 rounded-xl border border-neutral-200/80">
+                      <DollarSign className="w-6 h-6 text-neutral-700 mx-auto mb-2" />
+                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">Price</p>
+                      <p className="text-xl font-semibold text-neutral-950">{detailInfo.price}</p>
                     </div>
                   )}
                   {detailInfo.priceRange && (
-                    <div className="text-center p-4 bg-green-50 rounded-lg">
-                      <DollarSign className="w-6 h-6 text-green-500 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Price Range</p>
-                      <p className="text-lg font-bold text-gray-900">{detailInfo.priceRange}</p>
+                    <div className="text-center p-4 bg-neutral-100 rounded-xl border border-neutral-200/80">
+                      <DollarSign className="w-6 h-6 text-neutral-700 mx-auto mb-2" />
+                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">Price range</p>
+                      <p className="text-lg font-semibold text-neutral-950">{detailInfo.priceRange}</p>
                     </div>
                   )}
                   {detailInfo.location && (
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <MapPin className="w-6 h-6 text-orange-500 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600">Location</p>
-                      <p className="text-lg font-bold text-gray-900">{detailInfo.location}</p>
+                    <div className="text-center p-4 bg-neutral-100 rounded-xl border border-neutral-200/80">
+                      <MapPin className="w-6 h-6 text-neutral-700 mx-auto mb-2" />
+                      <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">Location</p>
+                      <p className="text-lg font-semibold text-neutral-950">{detailInfo.location}</p>
                     </div>
                   )}
                 </div>
@@ -578,12 +578,12 @@ export default function DetailsPage() {
                 {/* Highlights */}
                 {detailInfo.highlights && detailInfo.highlights.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Key Highlights</h3>
+                    <h3 className="text-lg font-semibold tracking-tight text-neutral-950 mb-4">Key highlights</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {detailInfo.highlights.map((highlight, index) => (
-                        <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-gray-700">{highlight}</p>
+                        <div key={index} className="flex items-start gap-3 p-3 bg-neutral-50 rounded-xl border border-neutral-200/60">
+                          <div className="w-1.5 h-1.5 bg-neutral-950 rounded-full mt-2 flex-shrink-0" />
+                          <p className="text-neutral-700 text-sm leading-relaxed">{highlight}</p>
                         </div>
                       ))}
                     </div>
@@ -593,12 +593,12 @@ export default function DetailsPage() {
                 {/* Activities */}
                 {detailInfo.activities && detailInfo.activities.length > 0 && (
                   <div className="mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Popular Activities</h3>
+                    <h3 className="text-lg font-semibold tracking-tight text-neutral-950 mb-4">Popular activities</h3>
                     <div className="flex flex-wrap gap-2">
                       {detailInfo.activities.map((activity, index) => (
                         <span
                           key={index}
-                          className="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"
+                          className="px-4 py-2 bg-neutral-100 text-neutral-800 rounded-full text-sm font-medium border border-neutral-200/80"
                         >
                           {activity}
                         </span>
@@ -610,12 +610,12 @@ export default function DetailsPage() {
                 {/* Features */}
                 {detailInfo.features && detailInfo.features.length > 0 && (
                   <div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-4">Features</h3>
+                    <h3 className="text-lg font-semibold tracking-tight text-neutral-950 mb-4">Features</h3>
                     <div className="flex flex-wrap gap-2">
                       {detailInfo.features.map((feature, index) => (
                         <span
                           key={index}
-                          className="px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium"
+                          className="px-4 py-2 bg-white text-neutral-800 rounded-full text-sm font-medium border border-neutral-200"
                         >
                           {feature}
                         </span>
@@ -627,14 +627,14 @@ export default function DetailsPage() {
 
               {/* Best Time to Visit */}
               {detailInfo.bestTimeToVisit && (
-                <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-white/20">
+                <div className="bg-white rounded-2xl shadow-sm shadow-black/[0.04] p-6 md:p-8 border border-neutral-200">
                   <div className="flex items-center gap-3 mb-4">
-                    <Calendar className="w-6 h-6 text-orange-500" />
-                    <h2 className="text-2xl font-bold text-gray-900">Best Time to Visit</h2>
+                    <Calendar className="w-6 h-6 text-neutral-700" />
+                    <h2 className="text-xl font-semibold tracking-tight text-neutral-950">Best time to visit</h2>
                   </div>
                   <div className="space-y-2">
                     {detailInfo.bestTimeToVisit.map((time, index) => (
-                      <p key={index} className="text-gray-700">{time}</p>
+                      <p key={index} className="text-neutral-600 text-sm">{time}</p>
             ))}
           </div>
                 </div>
@@ -643,45 +643,45 @@ export default function DetailsPage() {
 
             {/* Sidebar */}
             <div className="lg:col-span-1">
-              <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl p-6 border border-white/20 sticky top-4">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">Quick Info</h3>
+              <div className="bg-white rounded-2xl shadow-sm shadow-black/[0.04] p-6 md:p-8 border border-neutral-200 sticky top-4">
+                <h3 className="text-lg font-semibold tracking-tight text-neutral-950 mb-4">Quick info</h3>
                 
                 <div className="space-y-4 mb-6">
                   {detailInfo.type && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Type</p>
-                      <p className="font-medium text-gray-900 capitalize">{detailInfo.type}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1">Type</p>
+                      <p className="font-medium text-neutral-950 capitalize">{detailInfo.type}</p>
                     </div>
                   )}
                   {detailInfo.price && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Price</p>
-                      <p className="font-bold text-green-600 text-lg">{detailInfo.price}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1">Price</p>
+                      <p className="font-semibold text-neutral-950 text-lg">{detailInfo.price}</p>
                     </div>
                   )}
                   {detailInfo.priceRange && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Price Range</p>
-                      <p className="font-bold text-green-600 text-lg">{detailInfo.priceRange}</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1">Price range</p>
+                      <p className="font-semibold text-neutral-950 text-lg">{detailInfo.priceRange}</p>
                     </div>
                   )}
                   {detailInfo.rating && (
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Rating</p>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-neutral-500 mb-1">Rating</p>
                       <div className="flex items-center gap-2">
-                        <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                        <p className="font-medium text-gray-900">{detailInfo.rating} / 5.0</p>
+                        <Star className="w-5 h-5 text-neutral-700 fill-neutral-700" />
+                        <p className="font-medium text-neutral-950">{detailInfo.rating} / 5.0</p>
                       </div>
                     </div>
                   )}
                 </div>
 
-                <button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-medium hover:from-blue-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105">
-                  Book Now
+                <button type="button" className="w-full bg-neutral-950 text-white py-3 rounded-full text-sm font-semibold hover:bg-neutral-800 transition-colors">
+                  Book now
                 </button>
                 
-                <button className="w-full mt-3 border-2 border-gray-300 text-gray-700 py-3 rounded-xl font-medium hover:bg-gray-50 transition-colors">
-                  Contact Us
+                <button type="button" className="w-full mt-3 border border-neutral-200 text-neutral-950 py-3 rounded-full text-sm font-medium hover:bg-neutral-50 transition-colors">
+                  Contact us
                 </button>
               </div>
             </div>

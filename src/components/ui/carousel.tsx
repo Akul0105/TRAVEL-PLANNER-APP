@@ -16,6 +16,8 @@ type CarouselProps = {
   plugins?: CarouselPlugin;
   orientation?: 'horizontal' | 'vertical';
   setApi?: (api: CarouselApi) => void;
+  /** Applied to the inner Embla viewport (overflow) wrapper — use e.g. `h-full min-h-0` when filling flex parents */
+  viewportClassName?: string;
 };
 
 const CarouselContext = React.createContext<{
@@ -45,6 +47,7 @@ const Carousel = React.forwardRef<
       setApi,
       plugins,
       className,
+      viewportClassName,
       children,
       ...props
     },
@@ -98,7 +101,10 @@ const Carousel = React.forwardRef<
           className={cn('relative', className)}
           {...props}
         >
-          <div ref={carouselRef} className="overflow-hidden">
+          <div
+            ref={carouselRef}
+            className={cn('overflow-hidden', viewportClassName)}
+          >
             {children}
           </div>
         </div>
@@ -150,7 +156,7 @@ const CarouselPrevious = React.forwardRef<
       size={size}
       variant="outline"
       className={cn(
-        'absolute h-9 w-9 rounded-full border border-[#e8e4df] bg-[#faf8f5] text-[#2c2825] shadow-sm hover:bg-[#e8e4df]',
+        'absolute h-9 w-9 rounded-full border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-100',
         'left-0 top-1/2 -translate-y-1/2 -translate-x-4',
         !canScrollPrev && 'opacity-50 pointer-events-none',
         className
@@ -177,7 +183,7 @@ const CarouselNext = React.forwardRef<
       size={size}
       variant="outline"
       className={cn(
-        'absolute h-9 w-9 rounded-full border border-[#e8e4df] bg-[#faf8f5] text-[#2c2825] shadow-sm hover:bg-[#e8e4df]',
+        'absolute h-9 w-9 rounded-full border border-neutral-200 bg-white text-neutral-950 shadow-sm hover:bg-neutral-100',
         'right-0 top-1/2 -translate-y-1/2 translate-x-4',
         !canScrollNext && 'opacity-50 pointer-events-none',
         className
